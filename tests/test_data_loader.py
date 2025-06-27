@@ -43,14 +43,11 @@ def load_csv_as_mock_data(symbol: str) -> pd.DataFrame:
     """
     # Map symbols to available CSV files
     csv_files = {
-        "AAPL": "GOOGL.csv",  # Use GOOGL as fallback for AAPL
         "GOOGL": "GOOGL.csv",
         "MSFT": "MSFT.csv",
         "NVDA": "NVDA.csv",
         "TSM": "TSM.csv",
-        "BTC-USD": "GOOGL.csv",  # Use GOOGL as fallback for crypto
-        "EURUSD=X": "MSFT.csv",  # Use MSFT as fallback for forex
-        "TEST": "GOOGL.csv",  # Use GOOGL for test symbol
+        "TSLA": "TSLA.csv",
     }
 
     # Return empty DataFrame for invalid symbols
