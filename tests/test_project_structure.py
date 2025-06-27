@@ -6,8 +6,6 @@ as specified in the project initialization requirements.
 """
 
 import unittest
-import os
-import sys
 from pathlib import Path
 
 # Get the project root directory
