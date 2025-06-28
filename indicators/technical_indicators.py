@@ -305,13 +305,12 @@ def adaptive_moving_average(data: pd.Series, fast_period: int = 2, slow_period: 
     smoothing_constant = (efficiency_ratio * (fast_sc - slow_sc) + slow_sc) ** 2
     
     # Calculate AMA
-    ama = pd.Series(index=data.index, dtype=float)
-    ama.iloc[0] = data.iloc[0]  # Initialize first value
+    # Initialize AMA with the first value
+    ama = data.copy()
+    ama.iloc[0] = data.iloc[0]
     
-    for i in range(1, len(data)):
-        if pd.notna(smoothing_constant.iloc[i]):
-            ama.iloc[i] = ama.iloc[i-1] + smoothing_constant.iloc[i] * (data.iloc[i] - ama.iloc[i-1])
-        else:
-            ama.iloc[i] = ama.iloc[i-1]
+    # Calculate AMA iteratively using vectorized operations
+    ama = ama.shift(1) + smoothing_constant * (data - ama.shift(1))
+    ama.iloc[0] = data.iloc[0]  # Ensure the first value is correct
     
     return ama
