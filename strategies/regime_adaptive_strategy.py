@@ -107,42 +107,46 @@ class RegimeAdaptiveStrategy:
         }
     
     def _initialize_strategies(self) -> Dict[str, Any]:
-        """Initialize sub-strategies for each regime."""
+        """Initialize sub-strategies for each regime based on configurations."""
         strategies = {}
         
-        # Strong bull - Buy and hold with protection
-        strategies['strong_bull'] = BuyHoldPlusStrategy(
-            stress_rsi_threshold=25,
-            drawdown_threshold=0.10  # 10% drawdown threshold (positive value)
-        )
+        for regime, config in self.strategy_configs.items():
+            strategy_type = config.get('strategy_type', 'adaptive_ma')
+            
+            if strategy_type == 'buy_hold_plus':
+                strategies[regime] = BuyHoldPlusStrategy(
+                    stress_rsi_threshold=config.get('stress_rsi_threshold', 25),
+                    drawdown_threshold=abs(config.get('exit_drawdown_threshold', -0.10)),  # Convert to positive
+                    reentry_rsi_threshold=config.get('reentry_rsi_threshold', 40)
+                )
+            elif strategy_type == 'trend_following':
+                strategies[regime] = TrendFollowingStrategy(
+                    trend_window=config.get('trend_window', 50),
+                    confirmation_window=config.get('confirmation_window', 20),
+                    min_trend_strength=config.get('min_trend_strength', 25)
+                )
+            elif strategy_type == 'adaptive_ma':
+                strategies[regime] = AdaptiveMovingAverageStrategy(
+                    fast_period=config.get('fast_period', 10),
+                    slow_period=config.get('slow_period', 30)
+                )
+            elif strategy_type == 'cash':
+                strategies[regime] = CashStrategy()
+            else:
+                # Default to adaptive MA
+                strategies[regime] = AdaptiveMovingAverageStrategy(
+                    fast_period=config.get('fast_period', 15),
+                    slow_period=config.get('slow_period', 45)
+                )
         
-        # Moderate bull - Trend following
-        strategies['moderate_bull'] = TrendFollowingStrategy(
-            trend_window=self.strategy_configs['moderate_bull']['trend_window'],
-            confirmation_window=self.strategy_configs['moderate_bull']['confirmation_window'],
-            min_trend_strength=self.strategy_configs['moderate_bull']['min_trend_strength']
-        )
-        
-        # Sideways volatile - Adaptive MA (more responsive)
-        strategies['sideways_volatile'] = AdaptiveMovingAverageStrategy(
-            fast_period=self.strategy_configs['sideways_volatile']['fast_period'],
-            slow_period=self.strategy_configs['sideways_volatile']['slow_period']
-        )
-        
-        # Sideways calm - Adaptive MA (less responsive)
-        strategies['sideways_calm'] = AdaptiveMovingAverageStrategy(
-            fast_period=self.strategy_configs['sideways_calm']['fast_period'],
-            slow_period=self.strategy_configs['sideways_calm']['slow_period']
-        )
-        
-        # Bear market - Conservative adaptive MA
-        strategies['bear_market'] = AdaptiveMovingAverageStrategy(
-            fast_period=20,
-            slow_period=50
-        )
-        
-        # Crisis mode - Create simple cash strategy
-        strategies['crisis_mode'] = CashStrategy()
+        # Ensure all regimes have strategies
+        required_regimes = ['strong_bull', 'moderate_bull', 'sideways_volatile', 'sideways_calm', 'bear_market', 'crisis_mode']
+        for regime in required_regimes:
+            if regime not in strategies:
+                if regime == 'crisis_mode':
+                    strategies[regime] = CashStrategy()
+                else:
+                    strategies[regime] = AdaptiveMovingAverageStrategy()
         
         return strategies
     

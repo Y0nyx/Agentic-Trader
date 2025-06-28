@@ -78,10 +78,11 @@ class RegimeAdaptiveBenchmark:
     def optimize_regime_adaptive_strategy(
         self, 
         data: pd.DataFrame,
-        quick_optimization: bool = True
+        quick_optimization: bool = True,
+        optimization_limit: int = 0
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
-        Optimize the Regime Adaptive Strategy parameters.
+        Optimize the Regime Adaptive Strategy parameters with extensive grid search.
         
         Parameters
         ----------
@@ -89,27 +90,189 @@ class RegimeAdaptiveBenchmark:
             Market data for optimization
         quick_optimization : bool, default True
             If True, use a smaller parameter grid for faster optimization
+        optimization_limit : int, default 0
+            Limit optimization to first N combinations (0 = no limit)
             
         Returns
         -------
         Tuple[Dict[str, Any], Dict[str, Any]]
             Best parameters and optimization report
         """
-        logger.info("🔧 Starting Regime Adaptive Strategy optimization...")
+        logger.info("🔧 Starting extensive Regime Adaptive Strategy optimization...")
         
-        # Define parameter grid
+        # Define extensive parameter grid with strategy mixing
         if quick_optimization:
-            param_grid = {
-                'regime_memory': [3, 5, 7],
-                'confidence_threshold': [0.5, 0.6, 0.7]
-            }
+            # Still extensive but manageable for quick optimization
+            param_grid = self._create_extensive_param_grid_quick()
         else:
-            param_grid = {
-                'regime_memory': [2, 3, 5, 7, 10],
-                'confidence_threshold': [0.4, 0.5, 0.6, 0.7, 0.8],
-            }
+            # Full extensive optimization with strategy mixing
+            param_grid = self._create_extensive_param_grid_full()
         
-        # Custom objective function that balances returns and risk
+        # Run extensive optimization with custom grid search
+        logger.info(f"Preparing extensive optimization with {len(param_grid)} parameter combinations...")
+        
+        try:
+            best_params, optimization_summary = self._run_extensive_optimization(data, param_grid, optimization_limit)
+            
+            logger.info(f"✅ Extensive optimization completed!")
+            logger.info(f"Best parameters: {best_params}")
+            
+            return best_params, optimization_summary
+            
+        except Exception as e:
+            logger.error(f"Optimization failed: {e}")
+            # Return default parameters as fallback
+            default_params = {'regime_memory': 5, 'confidence_threshold': 0.6}
+            return default_params, {'error': str(e)}
+    
+    def _create_extensive_param_grid_quick(self) -> List[Dict[str, Any]]:
+        """Create extensive parameter grid for quick optimization (hundreds of combinations)."""
+        logger.info("🔧 Creating extensive parameter grid (quick mode)...")
+        
+        # Base RegimeAdaptiveStrategy parameters
+        base_params = {
+            'regime_memory': [3, 4, 5, 6, 7, 8],
+            'confidence_threshold': [0.4, 0.5, 0.6, 0.7, 0.8]
+        }
+        
+        # Strategy configurations for each regime
+        strategy_configs = {
+            'strong_bull': [
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 75, 'exit_drawdown_threshold': -0.08},
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 80, 'exit_drawdown_threshold': -0.10},
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 85, 'exit_drawdown_threshold': -0.12},
+            ],
+            'moderate_bull': [
+                {'strategy_type': 'trend_following', 'trend_window': 40, 'confirmation_window': 15, 'min_trend_strength': 20},
+                {'strategy_type': 'trend_following', 'trend_window': 50, 'confirmation_window': 20, 'min_trend_strength': 25},
+                {'strategy_type': 'trend_following', 'trend_window': 60, 'confirmation_window': 25, 'min_trend_strength': 30},
+            ],
+            'sideways_volatile': [
+                {'strategy_type': 'adaptive_ma', 'fast_period': 8, 'slow_period': 25, 'rsi_threshold': 65},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 10, 'slow_period': 30, 'rsi_threshold': 70},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 12, 'slow_period': 35, 'rsi_threshold': 75},
+            ],
+            'sideways_calm': [
+                {'strategy_type': 'adaptive_ma', 'fast_period': 12, 'slow_period': 40, 'rsi_threshold': 55},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 15, 'slow_period': 45, 'rsi_threshold': 60},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 18, 'slow_period': 50, 'rsi_threshold': 65},
+            ]
+        }
+        
+        return self._generate_param_combinations(base_params, strategy_configs)
+    
+    def _create_extensive_param_grid_full(self) -> List[Dict[str, Any]]:
+        """Create extensive parameter grid for full optimization (thousands of combinations)."""
+        logger.info("🔧 Creating extensive parameter grid (full mode)...")
+        
+        # Extended base RegimeAdaptiveStrategy parameters
+        base_params = {
+            'regime_memory': [2, 3, 4, 5, 6, 7, 8, 10, 12, 15],
+            'confidence_threshold': [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        }
+        
+        # Extensive strategy configurations for each regime
+        strategy_configs = {
+            'strong_bull': [
+                # BuyHoldPlusStrategy variations
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 70, 'exit_drawdown_threshold': -0.05},
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 75, 'exit_drawdown_threshold': -0.08},
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 80, 'exit_drawdown_threshold': -0.10},
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 85, 'exit_drawdown_threshold': -0.12},
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 90, 'exit_drawdown_threshold': -0.15},
+                # TrendFollowingStrategy alternatives
+                {'strategy_type': 'trend_following', 'trend_window': 30, 'confirmation_window': 10, 'min_trend_strength': 15},
+                {'strategy_type': 'trend_following', 'trend_window': 40, 'confirmation_window': 15, 'min_trend_strength': 20},
+            ],
+            'moderate_bull': [
+                # TrendFollowingStrategy variations
+                {'strategy_type': 'trend_following', 'trend_window': 30, 'confirmation_window': 10, 'min_trend_strength': 15},
+                {'strategy_type': 'trend_following', 'trend_window': 40, 'confirmation_window': 15, 'min_trend_strength': 20},
+                {'strategy_type': 'trend_following', 'trend_window': 50, 'confirmation_window': 20, 'min_trend_strength': 25},
+                {'strategy_type': 'trend_following', 'trend_window': 60, 'confirmation_window': 25, 'min_trend_strength': 30},
+                {'strategy_type': 'trend_following', 'trend_window': 70, 'confirmation_window': 30, 'min_trend_strength': 35},
+                # AdaptiveMA alternatives
+                {'strategy_type': 'adaptive_ma', 'fast_period': 10, 'slow_period': 30, 'rsi_threshold': 70},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 12, 'slow_period': 35, 'rsi_threshold': 75},
+            ],
+            'sideways_volatile': [
+                # AdaptiveMovingAverageStrategy variations
+                {'strategy_type': 'adaptive_ma', 'fast_period': 5, 'slow_period': 20, 'rsi_threshold': 60},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 8, 'slow_period': 25, 'rsi_threshold': 65},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 10, 'slow_period': 30, 'rsi_threshold': 70},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 12, 'slow_period': 35, 'rsi_threshold': 75},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 15, 'slow_period': 40, 'rsi_threshold': 80},
+                # TrendFollowing alternatives for volatile markets
+                {'strategy_type': 'trend_following', 'trend_window': 20, 'confirmation_window': 8, 'min_trend_strength': 10},
+                {'strategy_type': 'trend_following', 'trend_window': 25, 'confirmation_window': 10, 'min_trend_strength': 15},
+            ],
+            'sideways_calm': [
+                # AdaptiveMovingAverageStrategy variations
+                {'strategy_type': 'adaptive_ma', 'fast_period': 10, 'slow_period': 35, 'rsi_threshold': 50},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 12, 'slow_period': 40, 'rsi_threshold': 55},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 15, 'slow_period': 45, 'rsi_threshold': 60},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 18, 'slow_period': 50, 'rsi_threshold': 65},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 20, 'slow_period': 55, 'rsi_threshold': 70},
+                # TrendFollowing alternatives
+                {'strategy_type': 'trend_following', 'trend_window': 40, 'confirmation_window': 20, 'min_trend_strength': 25},
+                {'strategy_type': 'trend_following', 'trend_window': 50, 'confirmation_window': 25, 'min_trend_strength': 30},
+                # BuyHoldPlus for calm markets
+                {'strategy_type': 'buy_hold_plus', 'exit_rsi_threshold': 85, 'exit_drawdown_threshold': -0.15},
+            ],
+            'bear_market': [
+                # Conservative AdaptiveMA
+                {'strategy_type': 'adaptive_ma', 'fast_period': 15, 'slow_period': 50, 'rsi_threshold': 40},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 20, 'slow_period': 60, 'rsi_threshold': 35},
+                {'strategy_type': 'adaptive_ma', 'fast_period': 25, 'slow_period': 70, 'rsi_threshold': 30},
+                # Cash preservation
+                {'strategy_type': 'cash', 'position': 0},
+            ]
+        }
+        
+        return self._generate_param_combinations(base_params, strategy_configs)
+    
+    def _generate_param_combinations(self, base_params: Dict, strategy_configs: Dict) -> List[Dict[str, Any]]:
+        """Generate all parameter combinations from base params and strategy configs."""
+        param_combinations = []
+        
+        # Generate base parameter combinations
+        base_keys = list(base_params.keys())
+        base_values = list(base_params.values())
+        
+        for base_combo in itertools.product(*base_values):
+            base_dict = dict(zip(base_keys, base_combo))
+            
+            # Generate strategy configuration combinations
+            regime_keys = list(strategy_configs.keys())
+            regime_values = [strategy_configs[regime] for regime in regime_keys]
+            
+            for strategy_combo in itertools.product(*regime_values):
+                full_params = base_dict.copy()
+                
+                # Create strategy_configs dictionary
+                full_params['strategy_configs'] = {}
+                for regime, config in zip(regime_keys, strategy_combo):
+                    full_params['strategy_configs'][regime] = config
+                
+                param_combinations.append(full_params)
+        
+        logger.info(f"Generated {len(param_combinations)} parameter combinations")
+        return param_combinations
+    
+    def _run_extensive_optimization(self, data: pd.DataFrame, param_grid: List[Dict[str, Any]], optimization_limit: int = 0) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Run extensive optimization with custom grid search."""
+        
+        # Apply optimization limit if specified
+        if optimization_limit > 0 and len(param_grid) > optimization_limit:
+            logger.info(f"Limiting optimization to first {optimization_limit} combinations (out of {len(param_grid)})")
+            param_grid = param_grid[:optimization_limit]
+        
+        best_score = -np.inf
+        best_params = None
+        best_performance = None
+        results = []
+        
+        # Custom objective function
         def regime_objective(performance_report):
             """Multi-objective scoring for regime adaptive strategies."""
             if performance_report.portfolio_history.empty:
@@ -144,43 +307,56 @@ class RegimeAdaptiveBenchmark:
             
             return score
         
-        # Initialize optimizer
-        optimizer = GridSearchOptimizer(
-            strategy_class=RegimeAdaptiveStrategy,
-            backtester=self.backtester,
-            param_grid=param_grid,
-            objective=regime_objective
-        )
+        # Test each parameter combination
+        for i, params in enumerate(param_grid):
+            try:
+                # Create strategy with current parameters
+                strategy = RegimeAdaptiveStrategy(**params)
+                
+                # Generate signals and run backtest
+                signals = strategy.generate_signals(data)
+                performance = self.backtester.run_backtest(data, signals)
+                
+                # Calculate score
+                score = regime_objective(performance)
+                
+                # Store result
+                result = {
+                    'params': params,
+                    'score': score,
+                    'performance': performance
+                }
+                results.append(result)
+                
+                # Update best if this is better
+                if score > best_score:
+                    best_score = score
+                    best_params = params.copy()
+                    best_performance = performance
+                
+                # Progress logging
+                if (i + 1) % 50 == 0 or i == 0:
+                    logger.info(f"Tested {i + 1}/{len(param_grid)} combinations, best score: {best_score:.4f}")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to test parameter combination {i}: {e}")
+                results.append({
+                    'params': params,
+                    'score': -999,
+                    'error': str(e)
+                })
         
-        # Run optimization
-        logger.info(f"Optimizing over {np.prod([len(v) for v in param_grid.values()])} parameter combinations...")
+        # Create optimization summary
+        optimization_summary = {
+            'best_params': best_params,
+            'best_score': best_score,
+            'total_tested': len(param_grid),
+            'successful_tests': len([r for r in results if 'error' not in r]),
+            'optimized_performance': best_performance,
+            'all_results': results
+        }
         
-        try:
-            best_params, optimization_report = optimizer.optimize(data)
-            
-            # Test the optimized strategy
-            optimized_strategy = RegimeAdaptiveStrategy(**best_params)
-            optimized_signals = optimized_strategy.generate_signals(data)
-            optimized_performance = self.backtester.run_backtest(data, optimized_signals)
-            
-            optimization_summary = {
-                'best_params': best_params,
-                'best_score': getattr(optimization_report, 'best_score', None),
-                'total_tested': len(getattr(optimization_report, 'results', [])),
-                'optimized_performance': optimized_performance,
-                'optimization_report': optimization_report
-            }
-            
-            logger.info(f"✅ Optimization completed!")
-            logger.info(f"Best parameters: {best_params}")
-            
-            return best_params, optimization_summary
-            
-        except Exception as e:
-            logger.error(f"Optimization failed: {e}")
-            # Return default parameters as fallback
-            default_params = {'regime_memory': 5, 'confidence_threshold': 0.6}
-            return default_params, {'error': str(e)}
+        return best_params, optimization_summary
         
     def get_market_data(
         self, 
@@ -295,7 +471,8 @@ class RegimeAdaptiveBenchmark:
         self, 
         data: pd.DataFrame, 
         run_optimization: bool = False,
-        quick_optimization: bool = True
+        quick_optimization: bool = True,
+        optimization_limit: int = 0
     ) -> Dict[str, Any]:
         """
         Run comparison of regime adaptive strategy against benchmarks.
@@ -308,6 +485,8 @@ class RegimeAdaptiveBenchmark:
             Whether to run parameter optimization on Regime Adaptive strategy
         quick_optimization : bool, default True
             If True, use faster optimization with smaller parameter grid
+        optimization_limit : int, default 0
+            Limit optimization to first N combinations (0 = no limit)
             
         Returns
         -------
@@ -336,7 +515,7 @@ class RegimeAdaptiveBenchmark:
             logger.info("="*50)
             
             optimized_params, optimization_summary = self.optimize_regime_adaptive_strategy(
-                data, quick_optimization=quick_optimization
+                data, quick_optimization=quick_optimization, optimization_limit=optimization_limit
             )
             
             if 'error' not in optimization_summary:
@@ -405,9 +584,17 @@ class RegimeAdaptiveBenchmark:
         
         # Add optimization summary to results if available
         if optimization_summary and 'error' not in optimization_summary:
-            logger.info(f"\n📊 Optimization Summary:")
+            logger.info(f"\n📊 Extensive Optimization Summary:")
             logger.info(f"   Best parameters: {optimized_params}")
             logger.info(f"   Parameter combinations tested: {optimization_summary.get('total_tested', 'N/A')}")
+            logger.info(f"   Successful tests: {optimization_summary.get('successful_tests', 'N/A')}")
+            logger.info(f"   Best score: {optimization_summary.get('best_score', 'N/A'):.4f}")
+            
+            # Log best strategy configurations for each regime
+            if 'best_params' in optimization_summary and 'strategy_configs' in optimization_summary['best_params']:
+                logger.info(f"   Optimal regime strategies:")
+                for regime, config in optimization_summary['best_params']['strategy_configs'].items():
+                    logger.info(f"     {regime}: {config['strategy_type']} {config}")
             
         return results
     
@@ -464,7 +651,7 @@ class RegimeAdaptiveBenchmark:
         # Compare baseline vs optimized if both are available
         if ra_results and ra_opt_results:
             insights.append("")
-            insights.append("🔧 Optimization Impact:")
+            insights.append("🔧 Extensive Optimization Impact:")
             
             return_improvement = ra_opt_results['total_return'] - ra_results['total_return']
             sharpe_improvement = ra_opt_results['sharpe_ratio'] - ra_results['sharpe_ratio']
@@ -485,6 +672,21 @@ class RegimeAdaptiveBenchmark:
             else:
                 insights.append(f"   ⚠️ Maximum drawdown increased by {abs(dd_improvement):.1f}%")
             
+            # Show extensive optimization details
+            if hasattr(self, 'optimization_results') and 'total_tested' in self.optimization_results:
+                total_tested = self.optimization_results['total_tested']
+                successful_tests = self.optimization_results.get('successful_tests', total_tested)
+                insights.append(f"   🔍 Tested {total_tested} parameter combinations")
+                insights.append(f"   ✅ {successful_tests} successful tests ({100*successful_tests/total_tested:.1f}%)")
+                
+                # Show best regime strategy configurations
+                if 'best_params' in self.optimization_results and 'strategy_configs' in self.optimization_results['best_params']:
+                    insights.append(f"   🎯 Optimal regime strategies:")
+                    best_configs = self.optimization_results['best_params']['strategy_configs']
+                    for regime, config in best_configs.items():
+                        strategy_type = config.get('strategy_type', 'unknown')
+                        insights.append(f"      {regime}: {strategy_type}")
+            
             # Overall optimization verdict
             improvements = sum([
                 1 if return_improvement > 0.01 else 0,  # 1% improvement threshold
@@ -493,11 +695,11 @@ class RegimeAdaptiveBenchmark:
             ])
             
             if improvements >= 2:
-                insights.append("   ✅ Optimization was beneficial")
+                insights.append("   ✅ Extensive optimization was highly beneficial")
             elif improvements == 1:
-                insights.append("   ⚠️ Optimization showed mixed results")
+                insights.append("   ⚠️ Extensive optimization showed mixed results")
             else:
-                insights.append("   ❌ Optimization did not improve performance")
+                insights.append("   ❌ Extensive optimization did not improve performance")
         
         # Overall recommendations
         insights.append("")
@@ -505,19 +707,21 @@ class RegimeAdaptiveBenchmark:
         
         if ra_opt_results and ra_results:
             if ra_opt_results['total_return'] > ra_results['total_return']:
-                insights.append("   ✅ Use optimized parameters for better performance")
+                insights.append("   ✅ Use extensive optimization results for better performance")
                 if hasattr(self, 'optimization_results') and 'best_params' in self.optimization_results:
-                    params = self.optimization_results['best_params']
-                    insights.append(f"   🔧 Recommended parameters: {params}")
+                    insights.append(f"   🔧 Extensive optimization found superior parameters across regimes")
+                    insights.append(f"   📊 Consider implementing the optimized regime-strategy mapping")
             else:
-                insights.append("   ⚠️ Default parameters may be sufficient")
+                insights.append("   ⚠️ Default parameters may be sufficient despite extensive search")
+                insights.append("   🔍 Consider different optimization objectives or constraints")
         elif ra_results:
             avg_sharpe = np.mean([r['sharpe_ratio'] for r in valid_results.values()])
             ra_sharpe = ra_results['sharpe_ratio']
             if ra_sharpe > avg_sharpe:
                 insights.append("   ✅ Regime Adaptive shows above-average risk-adjusted performance")
             else:
-                insights.append("   📈 Consider parameter optimization for Regime Adaptive strategy")
+                insights.append("   📈 Consider extensive parameter optimization for Regime Adaptive strategy")
+                insights.append("   🔧 Run with --full-optimization flag for comprehensive search")
         
         return insights
     
@@ -654,9 +858,11 @@ def main():
     parser.add_argument('--no-viz', action='store_true', 
                        help='Skip visualization')
     parser.add_argument('--optimize', action='store_true',
-                       help='Run parameter optimization on Regime Adaptive strategy')
+                       help='Run extensive parameter optimization on Regime Adaptive strategy (thousands of combinations)')
     parser.add_argument('--full-optimization', action='store_true',
-                       help='Run comprehensive optimization (slower but more thorough)')
+                       help='Run comprehensive optimization with strategy mixing (hundreds of thousands of combinations - very slow but thorough)')
+    parser.add_argument('--optimization-limit', type=int, default=0,
+                       help='Limit optimization to first N combinations (0 = no limit)')
     
     args = parser.parse_args()
     
@@ -679,7 +885,8 @@ def main():
         results = benchmark.run_strategy_comparison(
             data, 
             run_optimization=args.optimize,
-            quick_optimization=not args.full_optimization
+            quick_optimization=not args.full_optimization,
+            optimization_limit=args.optimization_limit
         )
         
         # Generate insights
