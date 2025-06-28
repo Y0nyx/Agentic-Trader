@@ -8,18 +8,27 @@ strategy against standard alternatives with realistic market data.
 Features:
 - Uses real market data (when available) or realistic synthetic data
 - Comprehensive performance comparison
+- Parameter optimization for Regime Adaptive strategy
 - Clear visualization of results
 - Actionable insights and recommendations
 
 Usage:
+    # Basic benchmark
     python regime_adaptive_benchmark.py [--symbol GOOGL] [--years 5] [--quick]
+    
+    # With parameter optimization
+    python regime_adaptive_benchmark.py --optimize [--full-optimization]
+    
+    # Example from user's output
+    python regime_adaptive_benchmark.py --synthetic --years 3 --no-viz --optimize
 """
 
 import argparse
 import logging
 import warnings
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
+import itertools
 
 import pandas as pd
 import numpy as np
@@ -35,6 +44,9 @@ from strategies.adaptive_ma_strategy import AdaptiveMovingAverageStrategy
 # Simulation imports
 from simulation.backtester import Backtester
 from evaluation.metrics import evaluate_performance
+
+# Optimization imports
+from optimization.grid_search import GridSearchOptimizer
 
 # Data import (if available)
 try:
@@ -54,12 +66,121 @@ class RegimeAdaptiveBenchmark:
     
     This class provides a focused comparison of the regime adaptive strategy
     against common alternatives with clear performance metrics and insights.
+    Includes optimization capabilities to improve strategy performance.
     """
     
     def __init__(self, initial_capital: float = 100000):
         self.initial_capital = initial_capital
         self.backtester = Backtester(initial_capital=initial_capital)
         self.results = {}
+        self.optimization_results = {}
+        
+    def optimize_regime_adaptive_strategy(
+        self, 
+        data: pd.DataFrame,
+        quick_optimization: bool = True
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Optimize the Regime Adaptive Strategy parameters.
+        
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Market data for optimization
+        quick_optimization : bool, default True
+            If True, use a smaller parameter grid for faster optimization
+            
+        Returns
+        -------
+        Tuple[Dict[str, Any], Dict[str, Any]]
+            Best parameters and optimization report
+        """
+        logger.info("🔧 Starting Regime Adaptive Strategy optimization...")
+        
+        # Define parameter grid
+        if quick_optimization:
+            param_grid = {
+                'regime_memory': [3, 5, 7],
+                'confidence_threshold': [0.5, 0.6, 0.7]
+            }
+        else:
+            param_grid = {
+                'regime_memory': [2, 3, 5, 7, 10],
+                'confidence_threshold': [0.4, 0.5, 0.6, 0.7, 0.8],
+            }
+        
+        # Custom objective function that balances returns and risk
+        def regime_objective(performance_report):
+            """Multi-objective scoring for regime adaptive strategies."""
+            if performance_report.portfolio_history.empty:
+                return -999
+            
+            metrics = performance_report.summary()
+            
+            # Extract key metrics
+            sharpe = metrics.get('sharpe_ratio', 0)
+            max_dd = abs(metrics.get('max_drawdown_pct', 1))
+            total_return = metrics.get('total_return', 0)
+            win_rate = metrics.get('win_rate', 0)
+            
+            # Penalize excessive drawdown and reward consistent performance
+            if max_dd > 0.4:  # More than 40% drawdown is heavily penalized
+                drawdown_penalty = -2.0
+            elif max_dd > 0.3:  # 30-40% drawdown gets moderate penalty
+                drawdown_penalty = -1.0
+            elif max_dd > 0.2:  # 20-30% drawdown gets small penalty
+                drawdown_penalty = -0.3
+            else:
+                drawdown_penalty = 0.0
+            
+            # Multi-objective score (higher is better)
+            score = (
+                sharpe * 0.4 +                           # Risk-adjusted return (40%)
+                min(total_return, 1.0) * 0.3 +           # Capped total return (30%)
+                win_rate * 0.2 +                         # Win rate (20%)
+                (1 - min(max_dd, 1.0)) * 0.1 +          # Drawdown control (10%)
+                drawdown_penalty                         # Drawdown penalty
+            )
+            
+            return score
+        
+        # Initialize optimizer
+        optimizer = GridSearchOptimizer(
+            strategy_class=RegimeAdaptiveStrategy,
+            backtester=self.backtester,
+            param_grid=param_grid,
+            objective=regime_objective
+        )
+        
+        # Run optimization
+        logger.info(f"Optimizing over {np.prod([len(v) for v in param_grid.values()])} parameter combinations...")
+        
+        try:
+            best_params, optimization_report = optimizer.optimize(data)
+            
+            # Test the optimized strategy
+            optimized_strategy = RegimeAdaptiveStrategy(**best_params)
+            optimized_signals = optimized_strategy.generate_signals(data)
+            optimized_performance = self.backtester.run_backtest(data, optimized_signals)
+            
+            optimization_summary = {
+                'best_params': best_params,
+                'best_score': getattr(optimization_report, 'best_score', None),
+                'total_tested': len(getattr(optimization_report, 'results', [])),
+                'optimized_performance': optimized_performance,
+                'optimization_report': optimization_report
+            }
+            
+            logger.info(f"✅ Optimization completed!")
+            logger.info(f"Best parameters: {best_params}")
+            
+            return best_params, optimization_summary
+            
+        except Exception as e:
+            logger.error(f"Optimization failed: {e}")
+            # Return default parameters as fallback
+            default_params = {'regime_memory': 5, 'confidence_threshold': 0.6}
+            return default_params, {'error': str(e)}
         
     def get_market_data(
         self, 
@@ -170,7 +291,12 @@ class RegimeAdaptiveBenchmark:
         
         return np.array(prices)
     
-    def run_strategy_comparison(self, data: pd.DataFrame) -> Dict[str, Any]:
+    def run_strategy_comparison(
+        self, 
+        data: pd.DataFrame, 
+        run_optimization: bool = False,
+        quick_optimization: bool = True
+    ) -> Dict[str, Any]:
         """
         Run comparison of regime adaptive strategy against benchmarks.
         
@@ -178,6 +304,10 @@ class RegimeAdaptiveBenchmark:
         ----------
         data : pd.DataFrame
             Market data for backtesting
+        run_optimization : bool, default False
+            Whether to run parameter optimization on Regime Adaptive strategy
+        quick_optimization : bool, default True
+            If True, use faster optimization with smaller parameter grid
             
         Returns
         -------
@@ -195,6 +325,24 @@ class RegimeAdaptiveBenchmark:
         }
         
         results = {}
+        
+        # Run optimization if requested
+        optimized_params = None
+        optimization_summary = None
+        
+        if run_optimization:
+            logger.info("\n" + "="*50)
+            logger.info("🚀 PARAMETER OPTIMIZATION")
+            logger.info("="*50)
+            
+            optimized_params, optimization_summary = self.optimize_regime_adaptive_strategy(
+                data, quick_optimization=quick_optimization
+            )
+            
+            if 'error' not in optimization_summary:
+                # Add optimized version to comparison
+                strategies['Regime Adaptive (Optimized)'] = RegimeAdaptiveStrategy(**optimized_params)
+                self.optimization_results = optimization_summary
         
         for name, strategy in strategies.items():
             logger.info(f"Testing {name}...")
@@ -254,6 +402,13 @@ class RegimeAdaptiveBenchmark:
                 results[name] = {'error': str(e)}
         
         self.results = results
+        
+        # Add optimization summary to results if available
+        if optimization_summary and 'error' not in optimization_summary:
+            logger.info(f"\n📊 Optimization Summary:")
+            logger.info(f"   Best parameters: {optimized_params}")
+            logger.info(f"   Parameter combinations tested: {optimization_summary.get('total_tested', 'N/A')}")
+            
         return results
     
     def generate_insights(self) -> List[str]:
@@ -279,39 +434,86 @@ class RegimeAdaptiveBenchmark:
         insights.append(f"🛡️ Lowest Drawdown: {best_drawdown[0]} ({best_drawdown[1]['max_drawdown']:.1f}%)")
         
         # Analyze regime adaptive strategy specifically
-        if 'Regime Adaptive' in valid_results:
-            ra_results = valid_results['Regime Adaptive']
-            bh_results = valid_results.get('Buy & Hold', {})
+        ra_results = valid_results.get('Regime Adaptive')
+        ra_opt_results = valid_results.get('Regime Adaptive (Optimized)')
+        bh_results = valid_results.get('Buy & Hold', {})
+        
+        if ra_results and bh_results:
+            insights.append("")
+            insights.append("🎯 Regime Adaptive Analysis:")
             
-            if bh_results:
-                ra_return = ra_results['total_return']
-                bh_return = bh_results['total_return']
-                alpha = ra_return - bh_return
-                
-                insights.append("")
-                insights.append("🎯 Regime Adaptive Analysis:")
-                if alpha > 0:
-                    insights.append(f"   ✅ Outperformed Buy & Hold by {alpha:.1%}")
-                else:
-                    insights.append(f"   ❌ Underperformed Buy & Hold by {abs(alpha):.1%}")
-                
-                if ra_results['sharpe_ratio'] > bh_results['sharpe_ratio']:
-                    insights.append("   ✅ Better risk-adjusted returns")
-                else:
-                    insights.append("   ⚠️ Lower risk-adjusted returns")
-                
-                if ra_results['max_drawdown'] < bh_results['max_drawdown']:
-                    insights.append("   ✅ Better drawdown control")
-                else:
-                    insights.append("   ⚠️ Higher maximum drawdown")
+            ra_return = ra_results['total_return']
+            bh_return = bh_results['total_return']
+            alpha = ra_return - bh_return
+            
+            if alpha > 0:
+                insights.append(f"   ✅ Outperformed Buy & Hold by {alpha:.1%}")
+            else:
+                insights.append(f"   ❌ Underperformed Buy & Hold by {abs(alpha):.1%}")
+            
+            if ra_results['sharpe_ratio'] > bh_results['sharpe_ratio']:
+                insights.append("   ✅ Better risk-adjusted returns")
+            else:
+                insights.append("   ⚠️ Lower risk-adjusted returns")
+            
+            if ra_results['max_drawdown'] < bh_results['max_drawdown']:
+                insights.append("   ✅ Better drawdown control")
+            else:
+                insights.append("   ⚠️ Higher maximum drawdown")
+        
+        # Compare baseline vs optimized if both are available
+        if ra_results and ra_opt_results:
+            insights.append("")
+            insights.append("🔧 Optimization Impact:")
+            
+            return_improvement = ra_opt_results['total_return'] - ra_results['total_return']
+            sharpe_improvement = ra_opt_results['sharpe_ratio'] - ra_results['sharpe_ratio']
+            dd_improvement = ra_results['max_drawdown'] - ra_opt_results['max_drawdown']
+            
+            if return_improvement > 0:
+                insights.append(f"   📈 Return improved by {return_improvement:.1%}")
+            else:
+                insights.append(f"   📉 Return decreased by {abs(return_improvement):.1%}")
+            
+            if sharpe_improvement > 0:
+                insights.append(f"   📊 Sharpe ratio improved by {sharpe_improvement:.2f}")
+            else:
+                insights.append(f"   📊 Sharpe ratio decreased by {abs(sharpe_improvement):.2f}")
+            
+            if dd_improvement > 0:
+                insights.append(f"   🛡️ Maximum drawdown reduced by {dd_improvement:.1f}%")
+            else:
+                insights.append(f"   ⚠️ Maximum drawdown increased by {abs(dd_improvement):.1f}%")
+            
+            # Overall optimization verdict
+            improvements = sum([
+                1 if return_improvement > 0.01 else 0,  # 1% improvement threshold
+                1 if sharpe_improvement > 0.1 else 0,   # 0.1 Sharpe improvement
+                1 if dd_improvement > 1.0 else 0        # 1% drawdown reduction
+            ])
+            
+            if improvements >= 2:
+                insights.append("   ✅ Optimization was beneficial")
+            elif improvements == 1:
+                insights.append("   ⚠️ Optimization showed mixed results")
+            else:
+                insights.append("   ❌ Optimization did not improve performance")
         
         # Overall recommendations
         insights.append("")
         insights.append("💡 Recommendations:")
         
-        avg_sharpe = np.mean([r['sharpe_ratio'] for r in valid_results.values()])
-        if 'Regime Adaptive' in valid_results:
-            ra_sharpe = valid_results['Regime Adaptive']['sharpe_ratio']
+        if ra_opt_results and ra_results:
+            if ra_opt_results['total_return'] > ra_results['total_return']:
+                insights.append("   ✅ Use optimized parameters for better performance")
+                if hasattr(self, 'optimization_results') and 'best_params' in self.optimization_results:
+                    params = self.optimization_results['best_params']
+                    insights.append(f"   🔧 Recommended parameters: {params}")
+            else:
+                insights.append("   ⚠️ Default parameters may be sufficient")
+        elif ra_results:
+            avg_sharpe = np.mean([r['sharpe_ratio'] for r in valid_results.values()])
+            ra_sharpe = ra_results['sharpe_ratio']
             if ra_sharpe > avg_sharpe:
                 insights.append("   ✅ Regime Adaptive shows above-average risk-adjusted performance")
             else:
@@ -451,6 +653,10 @@ def main():
                        help='Use synthetic data instead of real market data')
     parser.add_argument('--no-viz', action='store_true', 
                        help='Skip visualization')
+    parser.add_argument('--optimize', action='store_true',
+                       help='Run parameter optimization on Regime Adaptive strategy')
+    parser.add_argument('--full-optimization', action='store_true',
+                       help='Run comprehensive optimization (slower but more thorough)')
     
     args = parser.parse_args()
     
@@ -469,8 +675,12 @@ def main():
             use_synthetic=args.synthetic
         )
         
-        # Run strategy comparison
-        results = benchmark.run_strategy_comparison(data)
+        # Run strategy comparison (with optimization if requested)
+        results = benchmark.run_strategy_comparison(
+            data, 
+            run_optimization=args.optimize,
+            quick_optimization=not args.full_optimization
+        )
         
         # Generate insights
         insights = benchmark.generate_insights()
@@ -494,6 +704,9 @@ def main():
         print(f"\n✅ Benchmark completed successfully!")
         print(f"📊 Analyzed {len(data)} days of market data")
         print(f"💰 Initial Capital: ${args.capital:,.0f}")
+        
+        if args.optimize:
+            print(f"🔧 Parameter optimization: {'Full' if args.full_optimization else 'Quick'}")
         
         if not args.synthetic and YFINANCE_AVAILABLE:
             print(f"📈 Symbol: {args.symbol}")
