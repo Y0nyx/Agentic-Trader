@@ -190,38 +190,36 @@ class TrendFollowingStrategy:
         result["Trend_Score"] = trend_score
         
         # Current position tracking
-        current_position = 0
+        # Initialize Signal and Position columns
+        result["Signal"] = np.nan
+        result["Position"] = 0
         
-        for i in range(len(result)):
-            if not valid_mask.iloc[i]:
-                continue
-            
-            current_trend_score = trend_score.iloc[i]
-            current_rsi = rsi_values.iloc[i]
-            
-            # BUY CONDITIONS (enter long position)
-            if current_position == 0:  # Not in position
-                # Strong bullish signal: high trend score and not overbought
-                if current_trend_score >= 5 and current_rsi < 70:  # Very conservative entry
-                    result.iloc[i, result.columns.get_loc("Signal")] = "BUY"
-                    result.iloc[i, result.columns.get_loc("Position")] = 1
-                    current_position = 1
-            
-            # SELL CONDITIONS (exit long position)
-            elif current_position == 1:  # In long position
-                # Exit conditions: weak trend or very overbought
-                exit_signal = (
-                    current_trend_score <= 2 or  # Trend weakening significantly
-                    current_rsi > self.exit_rsi_threshold  # Very overbought
-                )
-                
-                if exit_signal:
-                    result.iloc[i, result.columns.get_loc("Signal")] = "SELL"
-                    result.iloc[i, result.columns.get_loc("Position")] = -1
-                    current_position = 0
-                else:
-                    # Stay in position
-                    result.iloc[i, result.columns.get_loc("Position")] = 1
+        # BUY CONDITIONS (enter long position)
+        buy_condition = (trend_score >= 5) & (rsi_values < 70) & valid_mask
+        
+        # SELL CONDITIONS (exit long position)
+        sell_condition = (
+            (trend_score <= 2) |  # Trend weakening significantly
+            (rsi_values > self.exit_rsi_threshold)  # Very overbought
+        ) & valid_mask
+        
+        # Compute positions using cumulative logic
+        result["Position"] = np.where(
+            buy_condition, 1,  # Enter long position
+            np.where(sell_condition, -1, np.nan)  # Exit long position
+        )
+        
+        # Forward-fill positions to maintain state
+        result["Position"] = result["Position"].ffill().fillna(0)
+        
+        # Generate signals based on position changes
+        result["Signal"] = np.where(
+            (result["Position"] == 1) & (result["Position"].shift(1) == 0), "BUY",
+            np.where(
+                (result["Position"] == -1) & (result["Position"].shift(1) == 1), "SELL",
+                np.nan
+            )
+        )
         
         # Count signals
         buy_signals = (result["Signal"] == "BUY").sum()
