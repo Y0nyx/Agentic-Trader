@@ -1,0 +1,238 @@
+# GitHub Copilot Instructions for Agentic-Trader
+
+## Project Context
+You are helping to build Agentic-Trader, an autonomous trading agent with self-improvement capabilities using ML and LLM technologies. The project follows a modular architecture with emphasis on testability, robustness, and high code coverage (minimum 90%).
+
+## Code Generation Guidelines
+
+### 1. General Python Standards
+- Use Python 3.8+ features and type hints for all function signatures
+- Follow PEP 8 style guide strictly
+- All functions must have comprehensive docstrings (Google style)
+- Use descriptive variable names (no single letters except for indices)
+- Prefer composition over inheritance
+- Use dataclasses for data structures
+
+### 2. Project Structure
+```
+agentic_trader/
+├── data/          # Data loading and preprocessing
+├── strategies/    # Trading strategies
+├── simulation/    # Backtesting engine
+├── evaluation/    # Performance metrics
+├── optimization/  # Parameter optimization
+├── ml_models/     # Machine learning models
+├── llm_integration/ # LLM integration
+└── tests/         # Unit tests (mirror structure)
+```
+
+### 3. Code Templates
+
+#### Function Template
+```python
+def function_name(param1: type1, param2: type2) -> return_type:
+    """
+    Brief description of what the function does.
+    
+    Args:
+        param1: Description of param1
+        param2: Description of param2
+        
+    Returns:
+        Description of return value
+        
+    Raises:
+        ExceptionType: When this exception occurs
+        
+    Example:
+        >>> result = function_name(value1, value2)
+        >>> print(result)
+        expected_output
+    """
+    # Implementation
+```
+
+#### Class Template
+```python
+@dataclass
+class ClassName:
+    """
+    Brief description of the class purpose.
+    
+    Attributes:
+        attribute1: Description
+        attribute2: Description
+    """
+    attribute1: type1
+    attribute2: type2 = default_value
+    
+    def method_name(self) -> return_type:
+        """Method documentation."""
+        pass
+```
+
+#### Test Template
+```python
+import pytest
+import numpy as np
+import pandas as pd
+from unittest.mock import Mock, patch
+
+class TestClassName:
+    """Test suite for ClassName."""
+    
+    @pytest.fixture
+    def sample_data(self):
+        """Provide sample data for tests."""
+        return pd.DataFrame({
+            'date': pd.date_range('2024-01-01', periods=100),
+            'close': np.random.randn(100).cumsum() + 100
+        })
+    
+    def test_method_name_normal_case(self, sample_data):
+        """Test method_name with normal inputs."""
+        # Arrange
+        expected = ...
+        
+        # Act
+        result = ...
+        
+        # Assert
+        assert result == expected
+    
+    def test_method_name_edge_case(self):
+        """Test method_name with edge cases."""
+        pass
+    
+    def test_method_name_error_handling(self):
+        """Test method_name error handling."""
+        with pytest.raises(ValueError):
+            # Code that should raise error
+```
+
+### 4. Specific Module Guidelines
+
+#### Data Module
+- Always validate data integrity after loading
+- Handle missing values explicitly
+- Use pandas for data manipulation
+- Include data quality checks
+
+#### ML Models
+- Use TensorFlow/Keras for deep learning
+- Implement early stopping and checkpointing
+- Log all training metrics
+- Save models in standard formats (h5, pkl)
+
+#### Testing
+- Mock external dependencies (APIs, file I/O)
+- Use parameterized tests for multiple scenarios
+- Test both happy path and error cases
+- Aim for 90%+ code coverage
+
+### 5. Error Handling
+```python
+# Good
+try:
+    result = risky_operation()
+except SpecificException as e:
+    logger.error(f"Operation failed: {e}")
+    raise ProcessingError(f"Failed to process: {e}") from e
+
+# Bad
+try:
+    result = risky_operation()
+except:
+    pass
+```
+
+### 6. Logging
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Use appropriate log levels
+logger.debug("Detailed information for debugging")
+logger.info("General information")
+logger.warning("Warning messages")
+logger.error("Error messages")
+```
+
+### 7. Performance Considerations
+- Use vectorized operations with numpy/pandas
+- Avoid nested loops when possible
+- Cache expensive computations
+- Profile code for bottlenecks
+
+### 8. Security
+- Never hardcode API keys or credentials
+- Validate all inputs
+- Use environment variables for configuration
+- Sanitize data before processing
+
+## Copilot-Specific Instructions
+
+When generating code:
+1. **Always include type hints**
+2. **Always add comprehensive docstrings**
+3. **Always create corresponding unit tests**
+4. **Always handle edge cases and errors**
+5. **Always use meaningful variable names**
+
+When asked to create a module:
+1. Start with the main functionality
+2. Add error handling
+3. Create unit tests
+4. Add integration examples
+5. Update documentation
+
+## Example Prompt Patterns
+
+### For New Features
+"Create a [module_name] module that [functionality]. Include type hints, docstrings, error handling, and unit tests with 90% coverage."
+
+### For Tests
+"Write comprehensive unit tests for [function/class] covering normal cases, edge cases, and error scenarios. Use pytest and aim for 90% coverage."
+
+### For Documentation
+"Add detailed docstrings to [module/function] following Google style, including examples and edge cases."
+
+## Common Patterns to Follow
+
+### Data Validation
+```python
+def validate_dataframe(df: pd.DataFrame, required_columns: List[str]) -> None:
+    """Validate dataframe has required columns and no missing data."""
+    missing_cols = set(required_columns) - set(df.columns)
+    if missing_cols:
+        raise ValueError(f"Missing columns: {missing_cols}")
+    
+    if df[required_columns].isnull().any().any():
+        raise ValueError("Data contains null values")
+```
+
+### Configuration Management
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class Config:
+    """Configuration for module."""
+    param1: float = 0.1
+    param2: int = 100
+    param3: Optional[str] = None
+    
+    def validate(self) -> None:
+        """Validate configuration parameters."""
+        if not 0 < self.param1 < 1:
+            raise ValueError("param1 must be between 0 and 1")
+```
+
+## Remember
+- Quality over quantity
+- Test everything
+- Document everything
+- Handle errors gracefully
+- Think about future maintainability

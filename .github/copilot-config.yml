@@ -1,0 +1,15 @@
+version: 1
+
+network:
+  allowed_hosts:
+    - fc.yahoo.com
+    - guce.yahoo.com
+  
+testing:
+  enabled: true
+  coverage: true
+  
+ai:
+  issue_completion:
+    enabled: true
+    auto_test: true
