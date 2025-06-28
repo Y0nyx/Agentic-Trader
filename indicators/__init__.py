@@ -18,7 +18,7 @@ from .technical_indicators import (
 
 __all__ = [
     "rsi",
-    "macd", 
+    "macd",
     "bollinger_bands",
     "on_balance_volume",
     "average_true_range",

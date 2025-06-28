@@ -375,7 +375,9 @@ def calculate_trade_metrics(performance_report: PerformanceReport) -> Dict[str, 
     profit_factor = (
         total_wins / total_losses
         if total_losses > 0
-        else float("inf") if total_wins > 0 else 0
+        else float("inf")
+        if total_wins > 0
+        else 0
     )
 
     largest_win = max(profits) if profits else 0

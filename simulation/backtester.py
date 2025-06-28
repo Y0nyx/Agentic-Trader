@@ -97,7 +97,9 @@ class PerformanceReport:
         profit_factor = (
             total_wins / total_losses
             if total_losses > 0
-            else float("inf") if total_wins > 0 else 0
+            else float("inf")
+            if total_wins > 0
+            else 0
         )
 
         # Trading period
