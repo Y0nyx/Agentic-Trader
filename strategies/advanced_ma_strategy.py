@@ -310,18 +310,15 @@ class AdvancedMAStrategy:
             atr_values = result["ATR"]
             
             # For buy signals
-            buy_indices = buy_filter[buy_filter].index
-            for idx in buy_indices:
-                if pd.notna(atr_values.loc[idx]):
-                    result.loc[idx, "Stop_Loss"] = prices.loc[idx] - (self.atr_multiplier * atr_values.loc[idx])
-                    result.loc[idx, "Take_Profit"] = prices.loc[idx] + (2 * self.atr_multiplier * atr_values.loc[idx])
+            # For buy signals
+            buy_condition = buy_filter & atr_values.notna()
+            result.loc[buy_condition, "Stop_Loss"] = prices[buy_condition] - (self.atr_multiplier * atr_values[buy_condition])
+            result.loc[buy_condition, "Take_Profit"] = prices[buy_condition] + (2 * self.atr_multiplier * atr_values[buy_condition])
             
             # For sell signals  
-            sell_indices = sell_filter[sell_filter].index
-            for idx in sell_indices:
-                if pd.notna(atr_values.loc[idx]):
-                    result.loc[idx, "Stop_Loss"] = prices.loc[idx] + (self.atr_multiplier * atr_values.loc[idx])
-                    result.loc[idx, "Take_Profit"] = prices.loc[idx] - (2 * self.atr_multiplier * atr_values.loc[idx])
+            sell_condition = sell_filter & atr_values.notna()
+            result.loc[sell_condition, "Stop_Loss"] = prices[sell_condition] + (self.atr_multiplier * atr_values[sell_condition])
+            result.loc[sell_condition, "Take_Profit"] = prices[sell_condition] - (2 * self.atr_multiplier * atr_values[sell_condition])
         
         # Count signals
         buy_signals = buy_filter.sum()
