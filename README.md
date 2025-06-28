@@ -69,6 +69,103 @@ print(f"Apple data shape: {aapl_data.shape}")
 eurusd_data = load_financial_data('EURUSD=X', period='1y', clean_data=False)
 ```
 
+### Loading Data from CSV Files
+
+Load historical data from local CSV files:
+
+```python
+from data.csv_loader import load_csv_data, load_symbol_from_csv
+
+# Load data from specific CSV file
+df = load_csv_data("data/GOOGL.csv")
+print(f"Loaded {len(df)} rows of data")
+
+# Load data by symbol name (searches for matching CSV file)
+tesla_data = load_symbol_from_csv("TSLA")
+```
+
+### Implementing Trading Strategies
+
+Create and test trading strategies using moving average crossovers:
+
+```python
+from data.csv_loader import load_csv_data
+from strategies.moving_average_cross import MovingAverageCrossStrategy
+
+# Load historical data
+df = load_csv_data("data/TSLA.csv")
+
+# Configure and execute the strategy
+strategy = MovingAverageCrossStrategy(short_window=20, long_window=50)
+signals = strategy.generate_signals(df)
+
+# View generated signals
+print("Signal Summary:")
+print(signals['Signal'].value_counts())
+
+# Get strategy performance summary
+summary = strategy.get_strategy_summary(signals)
+print("\nStrategy Summary:", summary)
+```
+
+### Running Backtests
+
+Simulate trading performance with the backtesting engine:
+
+```python
+from data.csv_loader import load_csv_data
+from strategies.moving_average_cross import MovingAverageCrossStrategy
+from simulation.backtester import Backtester
+
+# Load data and generate signals
+df = load_csv_data("data/GOOGL.csv")
+strategy = MovingAverageCrossStrategy(short_window=20, long_window=50)
+signals = strategy.generate_signals(df)
+
+# Configure and run backtest
+backtester = Backtester(initial_capital=10000, commission=0.001, slippage=0.0005)
+performance_report = backtester.run_backtest(df, signals)
+
+# Display results
+print("=== BACKTEST RESULTS ===")
+summary = performance_report.summary()
+print(f"Initial Capital: ${summary['initial_capital']:,.2f}")
+print(f"Final Value: ${summary['final_value']:,.2f}")
+print(f"Total Return: {summary['total_return_pct']:.2f}%")
+print(f"Max Drawdown: {summary['max_drawdown_pct']:.2f}%")
+print(f"Sharpe Ratio: {summary['sharpe_ratio']:.2f}")
+print(f"Number of Trades: {summary['num_trades']}")
+print(f"Win Rate: {summary['win_rate']:.1%}")
+
+# View transaction history
+transactions = performance_report.get_transactions_df()
+print("\nFirst 5 Transactions:")
+print(transactions.head())
+```
+
+### Complete Example
+
+Here's a complete example combining all components:
+
+```python
+from data.csv_loader import load_csv_data
+from strategies.moving_average_cross import MovingAverageCrossStrategy
+from simulation.backtester import Backtester
+
+# Chargement des données CSV
+df = load_csv_data(filepath="data/GOOGL.csv")
+
+# Configuration et exécution de la stratégie
+strategy = MovingAverageCrossStrategy(short_window=20, long_window=50)
+signals = strategy.generate_signals(df)
+
+# Configuration et exécution du backtesting
+backtester = Backtester(initial_capital=10000)
+performance_report = backtester.run_backtest(df, signals)
+
+print(performance_report.summary())
+```
+
 ### Data Cleaning and Processing
 
 The module automatically handles:
