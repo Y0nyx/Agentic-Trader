@@ -11,6 +11,7 @@ This script demonstrates the complete workflow of:
 
 import sys
 import os
+import numpy as np
 
 # Add the project root to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -55,8 +56,8 @@ def main():
     # 2. Configure optimization parameters
     print("\n2. Setting up parameter optimization...")
     param_grid = {
-        "short_window": [10, 20, 30],
-        "long_window": [50, 100, 150]
+        "short_window": np.arange(10, 31, 5).tolist(),
+        "long_window": np.arange(50, 151, 10).tolist()
     }
     
     print("Parameter grid:")

@@ -23,12 +23,7 @@ def main():
     print("Running the exact example from issue requirements...")
     print("=" * 60)
     
-    # Chargement des données CSV
-    df = load_csv_data(filepath="data/BTC-USD.csv")
-    
-    if df.empty:
-        print("No BTC-USD data available, using GOOGL instead...")
-        df = load_csv_data(filepath="data/GOOGL.csv")
+    df = load_csv_data(filepath="data/GOOGL.csv")
     
     print(f"Loaded data: {len(df)} rows from {df.index.min()} to {df.index.max()}")
     
