@@ -6,7 +6,7 @@ portfolio simulation, transaction execution, and performance reporting.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 import pandas as pd
 import numpy as np
 
@@ -347,7 +347,8 @@ class Backtester:
         final_value = self.cash + self.position_value
 
         logger.info(
-            f"Backtest completed. Final value: {final_value:.2f}, Total return: {((final_value/self.initial_capital)-1)*100:.2f}%"
+            f"Backtest completed. Final value: {final_value:.2f}, "
+            f"Total return: {((final_value/self.initial_capital)-1)*100:.2f}%"
         )
 
         return PerformanceReport(
