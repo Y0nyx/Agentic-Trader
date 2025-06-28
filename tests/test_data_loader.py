@@ -148,9 +148,9 @@ class TestFinancialDataLoader(unittest.TestCase):
 
         # Sample data with outliers
         self.data_with_outliers = self.sample_data.copy()
-        self.data_with_outliers.loc[
-            self.data_with_outliers.index[5], "Close"
-        ] = 1000.0  # Much bigger jump
+        self.data_with_outliers.loc[self.data_with_outliers.index[5], "Close"] = (
+            1000.0  # Much bigger jump
+        )
 
     def test_load_financial_data_valid_symbol(self):
         """Test loading data for a valid symbol."""

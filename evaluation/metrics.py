@@ -132,9 +132,9 @@ def _calculate_advanced_metrics(
         "total_net_profit": total_net_profit,
         "avg_profit_per_trade": avg_profit_per_trade,
         "profit_std": profit_std,
-        "cumulative_profit_final": cumulative_profit.iloc[-1]
-        if len(cumulative_profit) > 0
-        else 0,
+        "cumulative_profit_final": (
+            cumulative_profit.iloc[-1] if len(cumulative_profit) > 0 else 0
+        ),
         "sortino_ratio": sortino_ratio,
         "calmar_ratio": calmar_ratio,
         "downside_volatility": downside_volatility,
@@ -142,9 +142,9 @@ def _calculate_advanced_metrics(
         "cvar_5_percent": cvar_5,
         "max_consecutive_wins": consecutive_wins,
         "max_consecutive_losses": consecutive_losses,
-        "portfolio_volatility_pct": portfolio["Daily_Return"].std() * 100
-        if len(returns) > 1
-        else 0,
+        "portfolio_volatility_pct": (
+            portfolio["Daily_Return"].std() * 100 if len(returns) > 1 else 0
+        ),
     }
 
 
@@ -375,9 +375,7 @@ def calculate_trade_metrics(performance_report: PerformanceReport) -> Dict[str, 
     profit_factor = (
         total_wins / total_losses
         if total_losses > 0
-        else float("inf")
-        if total_wins > 0
-        else 0
+        else float("inf") if total_wins > 0 else 0
     )
 
     largest_win = max(profits) if profits else 0

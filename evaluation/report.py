@@ -199,21 +199,29 @@ class PerformanceReporter:
         ) * 100
 
         return {
-            "start_date": portfolio.index.min().strftime("%Y-%m-%d")
-            if isinstance(portfolio.index, pd.DatetimeIndex)
-            else None,
-            "end_date": portfolio.index.max().strftime("%Y-%m-%d")
-            if isinstance(portfolio.index, pd.DatetimeIndex)
-            else None,
+            "start_date": (
+                portfolio.index.min().strftime("%Y-%m-%d")
+                if isinstance(portfolio.index, pd.DatetimeIndex)
+                else None
+            ),
+            "end_date": (
+                portfolio.index.max().strftime("%Y-%m-%d")
+                if isinstance(portfolio.index, pd.DatetimeIndex)
+                else None
+            ),
             "total_days": len(portfolio),
             "peak_value": portfolio["Total_Value"].max(),
             "lowest_value": portfolio["Total_Value"].min(),
-            "peak_date": portfolio["Total_Value"].idxmax().strftime("%Y-%m-%d")
-            if isinstance(portfolio.index, pd.DatetimeIndex)
-            else None,
-            "lowest_date": portfolio["Total_Value"].idxmin().strftime("%Y-%m-%d")
-            if isinstance(portfolio.index, pd.DatetimeIndex)
-            else None,
+            "peak_date": (
+                portfolio["Total_Value"].idxmax().strftime("%Y-%m-%d")
+                if isinstance(portfolio.index, pd.DatetimeIndex)
+                else None
+            ),
+            "lowest_date": (
+                portfolio["Total_Value"].idxmin().strftime("%Y-%m-%d")
+                if isinstance(portfolio.index, pd.DatetimeIndex)
+                else None
+            ),
         }
 
     def _generate_benchmark_comparison(self) -> Dict[str, Any]:
@@ -258,9 +266,9 @@ class PerformanceReporter:
 
         chart_data = {
             "portfolio_evolution": portfolio_evolution.to_dict("index"),
-            "transactions": transactions_df.to_dict("records")
-            if not transactions_df.empty
-            else [],
+            "transactions": (
+                transactions_df.to_dict("records") if not transactions_df.empty else []
+            ),
         }
 
         # Add profit distribution if we have P&L data
