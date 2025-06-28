@@ -152,6 +152,8 @@ class MultiObjectiveOptimizer:
                 value = summary[obj.name]
             elif obj.name == "total_return":
                 value = summary.get("total_return", 0)
+            elif obj.name == "total_return_pct":
+                value = summary.get("total_return_pct", 0)
             elif obj.name == "sharpe_ratio":
                 value = summary.get("sharpe_ratio", 0)
             elif obj.name == "win_rate":
@@ -160,8 +162,10 @@ class MultiObjectiveOptimizer:
                 value = summary.get("profit_factor", 0)
             elif obj.name == "max_drawdown":
                 value = -abs(summary.get("max_drawdown_pct", 0))  # Make negative for minimization
+            elif obj.name == "max_drawdown_pct":
+                value = summary.get("max_drawdown_pct", 0)
             elif obj.name == "num_trades":
-                value = -summary.get("num_trades", 0)  # Negative to minimize
+                value = summary.get("num_trades", 0)  # Don't negate here, handle in constraints
             elif obj.name == "calmar_ratio":
                 value = summary.get("calmar_ratio", 0)
             elif obj.name == "sortino_ratio":
