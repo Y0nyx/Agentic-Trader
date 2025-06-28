@@ -443,11 +443,15 @@ class RegimeOptimizationSuite:
                     # Create synthetic portfolio history for buy and hold
                     portfolio_values = (data['Close'] / initial_price * self.initial_capital)
                     portfolio_history = pd.DataFrame({
-                        'timestamp': data.index,
-                        'portfolio_value': portfolio_values,
-                        'position': [1.0] * len(data),
-                        'cash': [0.0] * len(data)
+                        'Date': data.index,
+                        'Price': data['Close'],
+                        'Signal': ['HOLD'] * len(data),
+                        'Cash': [0.0] * len(data),
+                        'Position': [self.initial_capital / initial_price] * len(data),
+                        'Position_Value': portfolio_values,
+                        'Total_Value': portfolio_values
                     })
+                    portfolio_history.set_index('Date', inplace=True)
                     
                     from simulation.backtester import PerformanceReport
                     performance = PerformanceReport(
@@ -600,7 +604,7 @@ class RegimeOptimizationSuite:
             comparison[strategy_name] = {
                 'total_return': metrics.get('total_return', 0),
                 'sharpe_ratio': metrics.get('sharpe_ratio', 0),
-                'max_drawdown': metrics.get('max_drawdown', 0),
+                'max_drawdown': metrics.get('max_drawdown_pct', 0),
                 'win_rate': metrics.get('win_rate', 0),
                 'volatility': metrics.get('volatility', 0)
             }
@@ -627,7 +631,7 @@ class RegimeOptimizationSuite:
             return {}
         
         # Calculate additional risk metrics
-        returns = portfolio_history['portfolio_value'].pct_change().dropna()
+        returns = portfolio_history['Total_Value'].pct_change().dropna()
         
         risk_metrics = {
             'value_at_risk_95': np.percentile(returns, 5),
@@ -659,10 +663,10 @@ class RegimeOptimizationSuite:
                     recommendations.append("⚠ Consider parameter refinement - buy-and-hold shows better risk-adjusted returns")
             
             # Evaluate max drawdown
-            max_dd = optimized_metrics.get('max_drawdown', 0)
-            if max_dd < 0.15:
+            max_dd = optimized_metrics.get('max_drawdown_pct', 0) / 100  # Convert to decimal
+            if max_dd > -0.15:  # Note: max_drawdown_pct is negative
                 recommendations.append("✓ Excellent drawdown control - max drawdown under 15%")
-            elif max_dd < 0.25:
+            elif max_dd > -0.25:
                 recommendations.append("✓ Good drawdown control - max drawdown under 25%")
             else:
                 recommendations.append("⚠ High drawdown risk - consider more conservative parameters")
@@ -718,7 +722,7 @@ class RegimeOptimizationSuite:
             portfolio_history = result['performance_report'].portfolio_history
             if not portfolio_history.empty:
                 ax1.plot(portfolio_history.index, 
-                        portfolio_history['portfolio_value'], 
+                        portfolio_history['Total_Value'], 
                         label=name.replace('_', ' ').title())
         ax1.set_title('Portfolio Value Over Time')
         ax1.set_ylabel('Portfolio Value ($)')
@@ -730,7 +734,7 @@ class RegimeOptimizationSuite:
         if 'regime_adaptive_optimized' in self.benchmark_results:
             portfolio_history = self.benchmark_results['regime_adaptive_optimized']['performance_report'].portfolio_history
             if not portfolio_history.empty:
-                returns = portfolio_history['portfolio_value'].pct_change().dropna()
+                returns = portfolio_history['Total_Value'].pct_change().dropna()
                 ax2.hist(returns, bins=50, alpha=0.7, density=True)
                 ax2.axvline(returns.mean(), color='red', linestyle='--', label=f'Mean: {returns.mean():.4f}')
                 ax2.set_title('Daily Returns Distribution')
@@ -751,7 +755,7 @@ class RegimeOptimizationSuite:
             metrics_data.append([
                 metrics.get('total_return', 0),
                 metrics.get('sharpe_ratio', 0),
-                metrics.get('max_drawdown', 0)
+                metrics.get('max_drawdown_pct', 0)
             ])
             strategy_names.append(name.replace('_', ' ').title())
         
@@ -761,7 +765,7 @@ class RegimeOptimizationSuite:
             
             ax3.bar(x - width, [m[0] for m in metrics_data], width, label='Total Return', alpha=0.8)
             ax3.bar(x, [m[1] for m in metrics_data], width, label='Sharpe Ratio', alpha=0.8)
-            ax3.bar(x + width, [-m[2] for m in metrics_data], width, label='Max Drawdown (neg)', alpha=0.8)
+            ax3.bar(x + width, [m[2] for m in metrics_data], width, label='Max Drawdown (%)', alpha=0.8)
             
             ax3.set_title('Performance Metrics Comparison')
             ax3.set_ylabel('Value')
