@@ -7,8 +7,7 @@ objectives simultaneously, such as maximizing returns while minimizing risk.
 
 import logging
 import pandas as pd
-import numpy as np
-from typing import Dict, List, Any, Callable, Union, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from simulation.backtester import Backtester
 from evaluation.metrics import evaluate_performance

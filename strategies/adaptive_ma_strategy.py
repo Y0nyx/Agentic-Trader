@@ -7,7 +7,6 @@ its smoothing constant based on market efficiency and volatility.
 
 import logging
 import pandas as pd
-import numpy as np
 from typing import Dict, Any
 from indicators.technical_indicators import adaptive_moving_average, rsi, adx
 

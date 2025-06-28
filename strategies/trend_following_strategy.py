@@ -196,7 +196,7 @@ class TrendFollowingStrategy:
 
         # Current position tracking
         # Initialize Signal and Position columns
-        result["Signal"] = np.nan
+        result["Signal"] = "HOLD"
         result["Position"] = 0
 
         # BUY CONDITIONS (enter long position)
@@ -227,7 +227,7 @@ class TrendFollowingStrategy:
             np.where(
                 (result["Position"] == -1) & (result["Position"].shift(1) == 1),
                 "SELL",
-                np.nan,
+                "HOLD",
             ),
         )
 

@@ -286,7 +286,7 @@ class TestMultiObjectiveOptimizer(unittest.TestCase):
     def setUp(self):
         """Set up test data and components."""
         # Create simple test data
-        dates = pd.date_range("2020-01-01", periods=100, freq="D")
+        dates = pd.date_range("2020-01-01", periods=99, freq="D")
         np.random.seed(42)
 
         prices = [100]
@@ -300,7 +300,7 @@ class TestMultiObjectiveOptimizer(unittest.TestCase):
                 "High": [p * 1.01 for p in prices[:-1]],
                 "Low": [p * 0.99 for p in prices[:-1]],
                 "Close": prices[1:],
-                "Volume": np.random.randint(1000, 10000, 100),
+                "Volume": np.random.randint(1000, 10000, 99),
             }
         )
         self.test_data.set_index("Date", inplace=True)
@@ -377,7 +377,7 @@ class TestStrategyIntegration(unittest.TestCase):
 
     def setUp(self):
         """Set up test data."""
-        dates = pd.date_range("2020-01-01", periods=200, freq="D")
+        dates = pd.date_range("2020-01-01", periods=199, freq="D")
         np.random.seed(42)
 
         # Generate more realistic trending data
@@ -398,7 +398,7 @@ class TestStrategyIntegration(unittest.TestCase):
                 ],
                 "Low": [p * (1 - abs(np.random.normal(0, 0.005))) for p in prices[:-1]],
                 "Close": prices[1:],
-                "Volume": np.random.randint(100000, 1000000, 200),
+                "Volume": np.random.randint(100000, 1000000, 199),
             }
         )
         self.test_data.set_index("Date", inplace=True)

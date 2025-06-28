@@ -298,7 +298,8 @@ def main():
     print(f"\nStrategy Performance Ranking:")
     print("-" * 100)
     print(
-        f"{'Strategy':<25} {'Return %':<10} {'Alpha %':<10} {'Sharpe':<8} {'Win Rate':<10} {'Trades':<8} {'Beat Benchmark':<15}"
+        f"{'Strategy':<25} {'Return %':<10} {'Alpha %':<10} {'Sharpe':<8} "
+        f"{'Win Rate':<10} {'Trades':<8} {'Beat Benchmark':<15}"
     )
     print("-" * 100)
 

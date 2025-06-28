@@ -7,7 +7,7 @@ to improve signal quality and reduce false positives.
 
 import pandas as pd
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple
 import logging
 
 logger = logging.getLogger(__name__)

@@ -7,9 +7,8 @@ while staying invested most of the time.
 
 import logging
 import pandas as pd
-import numpy as np
 from typing import Dict, Any
-from indicators.technical_indicators import ema, rsi, sma
+from indicators.technical_indicators import ema, rsi
 
 logger = logging.getLogger(__name__)
 

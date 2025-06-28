@@ -2,7 +2,7 @@
 """
 Visualization and Analysis Tools for Strategy Comparison.
 
-This script creates charts and detailed analysis to understand why 
+This script creates charts and detailed analysis to understand why
 strategies are underperforming and identify improvements.
 """
 
