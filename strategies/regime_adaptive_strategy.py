@@ -270,7 +270,7 @@ class RegimeAdaptiveStrategy:
             'total_signals': len(signals),
             'regime_changes': self.regime_changes,
             'current_regime': self.current_regime,
-            'active_strategy_type': getattr(self.active_strategy, '__class__', {}).get('__name__', 'Unknown')
+            'active_strategy_type': self.active_strategy.__class__.__name__ if self.active_strategy else 'Unknown'
         }
         
         # Regime distribution
