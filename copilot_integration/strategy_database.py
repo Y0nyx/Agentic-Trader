@@ -286,6 +286,27 @@ class StrategyDatabase:
                 'overbought': 75,
                 'volume_filter': True
             },
+            'bollinger_bands': {
+                'period': 20,
+                'std_dev': 2.0,
+                'squeeze_filter': True
+            },
+            'macd': {
+                'fast_period': 12,
+                'slow_period': 26,
+                'signal_period': 9,
+                'histogram_filter': True
+            },
+            'momentum': {
+                'lookback_period': 20,
+                'rebalance_freq': 'weekly',
+                'top_n_stocks': 10
+            },
+            'mean_reversion': {
+                'zscore_threshold': 2.0,
+                'lookback_window': 60,
+                'min_half_life': 5
+            },
             'trend_following': {
                 'lookback_period': 20,
                 'ma_period': 50,
@@ -296,44 +317,176 @@ class StrategyDatabase:
         return defaults.get(strategy_type, {})
     
     def _load_sample_data(self):
-        """Load sample historical data for demonstration."""
+        """Load comprehensive historical data for demonstration."""
         sample_results = [
-            # Moving Average strategies
+            # Moving Average strategies - Excellent performers
             StrategyResult(
                 strategy_type="moving_average",
-                parameters={"short_window": 10, "long_window": 30},
-                performance_metrics={"sharpe_ratio": 1.35, "total_return_pct": 15.2, "max_drawdown_pct": -8.5},
+                parameters={"short_window": 10, "long_window": 30, "use_rsi_filter": True, "volume_confirmation": True},
+                performance_metrics={
+                    "sharpe_ratio": 1.35, "total_return_pct": 15.2, "max_drawdown_pct": -8.5,
+                    "win_rate": 0.58, "avg_trade_duration": 12.5, "profit_factor": 1.42
+                },
                 market_regime="trending"
             ),
             StrategyResult(
                 strategy_type="moving_average", 
-                parameters={"short_window": 8, "long_window": 25},
-                performance_metrics={"sharpe_ratio": 1.18, "total_return_pct": 12.8, "max_drawdown_pct": -6.2},
+                parameters={"short_window": 8, "long_window": 25, "use_rsi_filter": True, "volume_confirmation": False},
+                performance_metrics={
+                    "sharpe_ratio": 1.18, "total_return_pct": 12.8, "max_drawdown_pct": -6.2,
+                    "win_rate": 0.55, "avg_trade_duration": 10.2, "profit_factor": 1.28
+                },
                 market_regime="trending"
             ),
             StrategyResult(
                 strategy_type="moving_average",
-                parameters={"short_window": 20, "long_window": 50},
-                performance_metrics={"sharpe_ratio": 0.85, "total_return_pct": 8.5, "max_drawdown_pct": -12.1},
+                parameters={"short_window": 12, "long_window": 26, "use_rsi_filter": True, "volume_confirmation": True},
+                performance_metrics={
+                    "sharpe_ratio": 1.48, "total_return_pct": 18.9, "max_drawdown_pct": -7.1,
+                    "win_rate": 0.62, "avg_trade_duration": 15.8, "profit_factor": 1.55
+                },
+                market_regime="trending"
+            ),
+            
+            # Moving Average strategies - Moderate performers
+            StrategyResult(
+                strategy_type="moving_average",
+                parameters={"short_window": 20, "long_window": 50, "use_rsi_filter": False, "volume_confirmation": False},
+                performance_metrics={
+                    "sharpe_ratio": 0.85, "total_return_pct": 8.5, "max_drawdown_pct": -12.1,
+                    "win_rate": 0.48, "avg_trade_duration": 22.3, "profit_factor": 1.15
+                },
                 market_regime="sideways"
             ),
             StrategyResult(
                 strategy_type="moving_average",
-                parameters={"short_window": 5, "long_window": 15},
-                performance_metrics={"sharpe_ratio": -0.25, "total_return_pct": -3.2, "max_drawdown_pct": -18.5},
+                parameters={"short_window": 15, "long_window": 35, "use_rsi_filter": False, "volume_confirmation": True},
+                performance_metrics={
+                    "sharpe_ratio": 0.72, "total_return_pct": 6.8, "max_drawdown_pct": -9.8,
+                    "win_rate": 0.52, "avg_trade_duration": 18.7, "profit_factor": 1.08
+                },
+                market_regime="sideways"
+            ),
+            
+            # Moving Average strategies - Poor performers
+            StrategyResult(
+                strategy_type="moving_average",
+                parameters={"short_window": 5, "long_window": 15, "use_rsi_filter": False, "volume_confirmation": False},
+                performance_metrics={
+                    "sharpe_ratio": -0.25, "total_return_pct": -3.2, "max_drawdown_pct": -18.5,
+                    "win_rate": 0.42, "avg_trade_duration": 5.2, "profit_factor": 0.88
+                },
                 market_regime="volatile"
             ),
-            # RSI strategies
+            StrategyResult(
+                strategy_type="moving_average",
+                parameters={"short_window": 25, "long_window": 75, "use_rsi_filter": False, "volume_confirmation": False},
+                performance_metrics={
+                    "sharpe_ratio": -0.18, "total_return_pct": -2.1, "max_drawdown_pct": -15.8,
+                    "win_rate": 0.44, "avg_trade_duration": 35.6, "profit_factor": 0.92
+                },
+                market_regime="volatile"
+            ),
+            
+            # RSI strategies - Excellent performers
             StrategyResult(
                 strategy_type="rsi",
-                parameters={"rsi_period": 14, "oversold": 25, "overbought": 75},
-                performance_metrics={"sharpe_ratio": 1.42, "total_return_pct": 18.7, "max_drawdown_pct": -5.8},
+                parameters={"rsi_period": 14, "oversold": 25, "overbought": 75, "volume_filter": True},
+                performance_metrics={
+                    "sharpe_ratio": 1.42, "total_return_pct": 18.7, "max_drawdown_pct": -5.8,
+                    "win_rate": 0.64, "avg_trade_duration": 8.5, "profit_factor": 1.68
+                },
                 market_regime="mean_reverting"
             ),
             StrategyResult(
                 strategy_type="rsi",
-                parameters={"rsi_period": 21, "oversold": 30, "overbought": 70},
-                performance_metrics={"sharpe_ratio": 0.95, "total_return_pct": 9.8, "max_drawdown_pct": -9.2},
+                parameters={"rsi_period": 16, "oversold": 20, "overbought": 80, "volume_filter": True},
+                performance_metrics={
+                    "sharpe_ratio": 1.28, "total_return_pct": 16.2, "max_drawdown_pct": -6.8,
+                    "win_rate": 0.61, "avg_trade_duration": 9.2, "profit_factor": 1.54
+                },
+                market_regime="mean_reverting"
+            ),
+            
+            # RSI strategies - Moderate performers
+            StrategyResult(
+                strategy_type="rsi",
+                parameters={"rsi_period": 21, "oversold": 30, "overbought": 70, "volume_filter": False},
+                performance_metrics={
+                    "sharpe_ratio": 0.95, "total_return_pct": 9.8, "max_drawdown_pct": -9.2,
+                    "win_rate": 0.56, "avg_trade_duration": 11.8, "profit_factor": 1.22
+                },
+                market_regime="mean_reverting"
+            ),
+            StrategyResult(
+                strategy_type="rsi",
+                parameters={"rsi_period": 10, "oversold": 35, "overbought": 65, "volume_filter": True},
+                performance_metrics={
+                    "sharpe_ratio": 0.78, "total_return_pct": 7.5, "max_drawdown_pct": -8.1,
+                    "win_rate": 0.53, "avg_trade_duration": 6.8, "profit_factor": 1.18
+                },
+                market_regime="trending"
+            ),
+            
+            # Bollinger Bands strategies
+            StrategyResult(
+                strategy_type="bollinger_bands",
+                parameters={"period": 20, "std_dev": 2.0, "squeeze_filter": True},
+                performance_metrics={
+                    "sharpe_ratio": 1.22, "total_return_pct": 14.5, "max_drawdown_pct": -7.2,
+                    "win_rate": 0.59, "avg_trade_duration": 9.8, "profit_factor": 1.38
+                },
+                market_regime="mean_reverting"
+            ),
+            StrategyResult(
+                strategy_type="bollinger_bands",
+                parameters={"period": 15, "std_dev": 1.8, "squeeze_filter": False},
+                performance_metrics={
+                    "sharpe_ratio": 0.88, "total_return_pct": 8.9, "max_drawdown_pct": -10.5,
+                    "win_rate": 0.52, "avg_trade_duration": 7.5, "profit_factor": 1.12
+                },
+                market_regime="volatile"
+            ),
+            
+            # MACD strategies
+            StrategyResult(
+                strategy_type="macd",
+                parameters={"fast_period": 12, "slow_period": 26, "signal_period": 9, "histogram_filter": True},
+                performance_metrics={
+                    "sharpe_ratio": 1.15, "total_return_pct": 13.2, "max_drawdown_pct": -8.8,
+                    "win_rate": 0.57, "avg_trade_duration": 14.2, "profit_factor": 1.32
+                },
+                market_regime="trending"
+            ),
+            StrategyResult(
+                strategy_type="macd",
+                parameters={"fast_period": 8, "slow_period": 21, "signal_period": 7, "histogram_filter": False},
+                performance_metrics={
+                    "sharpe_ratio": 0.92, "total_return_pct": 9.1, "max_drawdown_pct": -11.2,
+                    "win_rate": 0.54, "avg_trade_duration": 11.8, "profit_factor": 1.19
+                },
+                market_regime="trending"
+            ),
+            
+            # Momentum strategies
+            StrategyResult(
+                strategy_type="momentum",
+                parameters={"lookback_period": 20, "rebalance_freq": "weekly", "top_n_stocks": 10},
+                performance_metrics={
+                    "sharpe_ratio": 1.05, "total_return_pct": 11.8, "max_drawdown_pct": -12.5,
+                    "win_rate": 0.51, "avg_trade_duration": 28.5, "profit_factor": 1.25
+                },
+                market_regime="trending"
+            ),
+            
+            # Mean reversion strategies
+            StrategyResult(
+                strategy_type="mean_reversion",
+                parameters={"zscore_threshold": 2.0, "lookback_window": 60, "min_half_life": 5},
+                performance_metrics={
+                    "sharpe_ratio": 1.38, "total_return_pct": 16.8, "max_drawdown_pct": -6.5,
+                    "win_rate": 0.63, "avg_trade_duration": 12.2, "profit_factor": 1.58
+                },
                 market_regime="mean_reverting"
             ),
         ]
