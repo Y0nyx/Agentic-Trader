@@ -1,0 +1,37 @@
+{
+  "strategy_database": {
+    "enabled": true,
+    "api_endpoint": "http://localhost:8000/api/strategy-context",
+    "auto_inject_context": true,
+    "context_types": [
+      "parameter_optimization",
+      "performance_patterns", 
+      "failure_modes",
+      "code_patterns"
+    ]
+  },
+  "suggestion_enhancement": {
+    "use_historical_data": true,
+    "prefer_tested_parameters": true,
+    "warn_on_known_failures": true,
+    "suggest_optimizations": true
+  },
+  "code_generation": {
+    "include_performance_comments": true,
+    "add_validation_checks": true,
+    "generate_parameter_hints": true,
+    "include_regime_awareness": true
+  },
+  "api_settings": {
+    "timeout_seconds": 10,
+    "retry_attempts": 3,
+    "cache_duration_minutes": 30
+  },
+  "supported_strategies": [
+    "moving_average",
+    "rsi",
+    "trend_following",
+    "bollinger_bands",
+    "macd"
+  ]
+}
