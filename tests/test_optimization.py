@@ -26,7 +26,7 @@ class TestGridSearchOptimizer(unittest.TestCase):
         # Create sample data
         dates = pd.date_range("2023-01-01", periods=100, freq="D")
         prices = 100 + np.cumsum(np.random.randn(100) * 0.02)  # Random walk
-        
+
         self.data = pd.DataFrame(
             {
                 "Open": prices * 0.99,
@@ -37,22 +37,22 @@ class TestGridSearchOptimizer(unittest.TestCase):
             },
             index=dates,
         )
-        
+
         # Create backtester
         self.backtester = Backtester(initial_capital=10000)
-        
+
         # Create parameter grid
         self.param_grid = {
             "short_window": [5, 10],
             "long_window": [20, 30],
         }
-        
+
         # Create optimizer
         self.optimizer = GridSearchOptimizer(
             strategy_class=MovingAverageCrossStrategy,
             backtester=self.backtester,
             param_grid=self.param_grid,
-            objective="sharpe_ratio"
+            objective="sharpe_ratio",
         )
 
     def test_optimizer_initialization(self):
@@ -70,34 +70,36 @@ class TestGridSearchOptimizer(unittest.TestCase):
             GridSearchOptimizer(
                 MovingAverageCrossStrategy, self.backtester, {}, "sharpe_ratio"
             )
-        
+
         # Invalid param grid type
         with self.assertRaises(ValueError):
             GridSearchOptimizer(
                 MovingAverageCrossStrategy, self.backtester, "invalid", "sharpe_ratio"
             )
-        
+
         # Empty parameter values
         with self.assertRaises(ValueError):
             GridSearchOptimizer(
-                MovingAverageCrossStrategy, 
-                self.backtester, 
-                {"short_window": []}, 
-                "sharpe_ratio"
+                MovingAverageCrossStrategy,
+                self.backtester,
+                {"short_window": []},
+                "sharpe_ratio",
             )
 
     def test_count_combinations(self):
         """Test parameter combination counting."""
         count = self.optimizer._count_combinations()
-        expected = len(self.param_grid["short_window"]) * len(self.param_grid["long_window"])
+        expected = len(self.param_grid["short_window"]) * len(
+            self.param_grid["long_window"]
+        )
         self.assertEqual(count, expected)
 
     def test_generate_param_combinations(self):
         """Test parameter combination generation."""
         combinations = list(self.optimizer._generate_param_combinations())
-        
+
         self.assertEqual(len(combinations), 4)  # 2 * 2 = 4 combinations
-        
+
         # Check all combinations are generated
         expected_combinations = [
             {"short_window": 5, "long_window": 20},
@@ -105,7 +107,7 @@ class TestGridSearchOptimizer(unittest.TestCase):
             {"short_window": 10, "long_window": 20},
             {"short_window": 10, "long_window": 30},
         ]
-        
+
         for expected in expected_combinations:
             self.assertIn(expected, combinations)
 
@@ -120,36 +122,42 @@ class TestGridSearchOptimizer(unittest.TestCase):
             "profit_factor": 2.0,
             "win_rate": 0.6,
         }
-        
+
         # Test different string objectives
         self.optimizer.objective = "sharpe_ratio"
         self.assertEqual(self.optimizer._evaluate_objective(mock_report), 1.5)
-        
+
         self.optimizer.objective = "roi"
         self.assertEqual(self.optimizer._evaluate_objective(mock_report), 0.15)
-        
+
         self.optimizer.objective = "drawdown"
-        self.assertEqual(self.optimizer._evaluate_objective(mock_report), -5.0)  # -abs(-5.0) = -5.0
-        
+        self.assertEqual(
+            self.optimizer._evaluate_objective(mock_report), -5.0
+        )  # -abs(-5.0) = -5.0
+
         self.optimizer.objective = "profit_factor"
         self.assertEqual(self.optimizer._evaluate_objective(mock_report), 2.0)
-        
+
         self.optimizer.objective = "win_rate"
         self.assertEqual(self.optimizer._evaluate_objective(mock_report), 0.6)
 
     def test_evaluate_objective_callable(self):
         """Test objective evaluation with callable objective."""
+
         def custom_objective(report):
             summary = report.summary()
             return summary.get("total_return", 0) * 2
-        
+
         optimizer = GridSearchOptimizer(
-            MovingAverageCrossStrategy, self.backtester, self.param_grid, custom_objective
+            MovingAverageCrossStrategy,
+            self.backtester,
+            self.param_grid,
+            custom_objective,
         )
-        
+
         mock_report = Mock()
         mock_report.summary.return_value = {"total_return": 0.15}
-        
+
         result = optimizer._evaluate_objective(mock_report)
         self.assertEqual(result, 0.3)  # 0.15 * 2
 
@@ -160,18 +168,21 @@ class TestGridSearchOptimizer(unittest.TestCase):
             "short_window": [5, 10],
             "long_window": [20, 25],
         }
-        
+
         optimizer = GridSearchOptimizer(
-            MovingAverageCrossStrategy, self.backtester, small_param_grid, "total_return"
+            MovingAverageCrossStrategy,
+            self.backtester,
+            small_param_grid,
+            "total_return",
         )
-        
+
         best_params, report = optimizer.optimize(self.data, verbose=False)
-        
+
         # Check that optimization completed
         self.assertIsNotNone(best_params)
         self.assertIsInstance(report, OptimizationReport)
         self.assertEqual(len(optimizer.results), 4)  # 2 * 2 combinations
-        
+
         # Check that best params are in the search space
         self.assertIn(best_params["short_window"], small_param_grid["short_window"])
         self.assertIn(best_params["long_window"], small_param_grid["long_window"])
@@ -179,7 +190,7 @@ class TestGridSearchOptimizer(unittest.TestCase):
     def test_optimize_empty_data(self):
         """Test optimization with empty data."""
         empty_data = pd.DataFrame()
-        
+
         with self.assertRaises(ValueError):
             self.optimizer.optimize(empty_data)
 
@@ -191,13 +202,13 @@ class TestGridSearchOptimizer(unittest.TestCase):
             "short_window": [30, 40],  # These are >= long_window
             "long_window": [20, 25],
         }
-        
+
         optimizer = GridSearchOptimizer(
             MovingAverageCrossStrategy, self.backtester, bad_param_grid, "sharpe_ratio"
         )
-        
+
         best_params, report = optimizer.optimize(self.data, verbose=False)
-        
+
         # Should handle errors gracefully
         self.assertEqual(len(optimizer.results), 4)
         # All results should have failed
@@ -208,9 +219,9 @@ class TestGridSearchOptimizer(unittest.TestCase):
         """Test getting top results."""
         # First run optimization
         self.optimizer.optimize(self.data, verbose=False)
-        
+
         top_results = self.optimizer.get_top_results(n=2)
-        
+
         self.assertLessEqual(len(top_results), 2)
         if len(top_results) > 1:
             # Results should be sorted by score (descending)
@@ -220,9 +231,9 @@ class TestGridSearchOptimizer(unittest.TestCase):
         """Test parameter sensitivity analysis."""
         # Run optimization first
         self.optimizer.optimize(self.data, verbose=False)
-        
+
         sensitivity = self.optimizer.analyze_parameter_sensitivity()
-        
+
         # Should have sensitivity data for each parameter
         for param in self.param_grid.keys():
             if param in sensitivity:
@@ -254,20 +265,18 @@ class TestOptimizationReport(unittest.TestCase):
             },
             {
                 "params": {"short_window": 10, "long_window": 30},
-                "score": -float('inf'),  # Failed result
+                "score": -float("inf"),  # Failed result
                 "error": "Test error",
                 "performance_summary": {},
             },
         ]
-        
+
         self.param_grid = {
             "short_window": [5, 10],
             "long_window": [20, 30],
         }
-        
-        self.report = OptimizationReport(
-            self.results, "sharpe_ratio", self.param_grid
-        )
+
+        self.report = OptimizationReport(self.results, "sharpe_ratio", self.param_grid)
 
     def test_report_initialization(self):
         """Test report initialization."""
@@ -278,41 +287,47 @@ class TestOptimizationReport(unittest.TestCase):
     def test_summary(self):
         """Test report summary generation."""
         summary = self.report.summary()
-        
+
         expected_keys = [
-            "total_combinations", "successful_combinations", "failed_combinations",
-            "best_score", "best_params", "score_statistics"
+            "total_combinations",
+            "successful_combinations",
+            "failed_combinations",
+            "best_score",
+            "best_params",
+            "score_statistics",
         ]
-        
+
         for key in expected_keys:
             self.assertIn(key, summary)
-        
+
         self.assertEqual(summary["total_combinations"], 4)
         self.assertEqual(summary["successful_combinations"], 3)
         self.assertEqual(summary["failed_combinations"], 1)
         self.assertEqual(summary["best_score"], 1.5)
-        self.assertEqual(summary["best_params"], {"short_window": 10, "long_window": 20})
+        self.assertEqual(
+            summary["best_params"], {"short_window": 10, "long_window": 20}
+        )
 
     def test_summary_no_valid_results(self):
         """Test summary with no valid results."""
         failed_results = [
             {
                 "params": {"short_window": 5, "long_window": 20},
-                "score": -float('inf'),
+                "score": -float("inf"),
                 "error": "Test error",
             }
         ]
-        
+
         report = OptimizationReport(failed_results, "sharpe_ratio", self.param_grid)
         summary = report.summary()
-        
+
         self.assertEqual(summary["successful_combinations"], 0)
         self.assertIsNone(summary["best_score"])
 
     def test_get_parameter_impact(self):
         """Test parameter impact calculation."""
         impact = self.report.get_parameter_impact()
-        
+
         # Should have impact for each parameter
         for param in self.param_grid.keys():
             self.assertIn(param, impact)
@@ -321,7 +336,7 @@ class TestOptimizationReport(unittest.TestCase):
     def test_get_best_results(self):
         """Test getting best results."""
         best_results = self.report.get_best_results(n=2)
-        
+
         self.assertEqual(len(best_results), 2)
         # Should be sorted by score
         self.assertGreaterEqual(best_results[0]["score"], best_results[1]["score"])
@@ -329,7 +344,7 @@ class TestOptimizationReport(unittest.TestCase):
     def test_print_summary(self):
         """Test formatted summary printing."""
         summary_text = self.report.print_summary()
-        
+
         self.assertIsInstance(summary_text, str)
         self.assertIn("GRID SEARCH OPTIMIZATION REPORT", summary_text)
         self.assertIn("Best Score:", summary_text)
@@ -344,7 +359,7 @@ class TestOptimizeStrategyFunction(unittest.TestCase):
         # Create sample data
         dates = pd.date_range("2023-01-01", periods=50, freq="D")
         prices = 100 + np.cumsum(np.random.randn(50) * 0.01)
-        
+
         self.data = pd.DataFrame(
             {
                 "Open": prices * 0.99,
@@ -355,7 +370,7 @@ class TestOptimizeStrategyFunction(unittest.TestCase):
             },
             index=dates,
         )
-        
+
         self.param_space = {
             "short_window": [5, 10],
             "long_window": [20, 25],
@@ -370,27 +385,28 @@ class TestOptimizeStrategyFunction(unittest.TestCase):
             objective="total_return",
             initial_capital=5000,
         )
-        
+
         self.assertIsNotNone(best_params)
         self.assertIsInstance(report, OptimizationReport)
-        
+
         # Check that best params are valid
         self.assertIn(best_params["short_window"], self.param_space["short_window"])
         self.assertIn(best_params["long_window"], self.param_space["long_window"])
 
     def test_optimize_strategy_custom_objective(self):
         """Test optimize_strategy with custom objective function."""
+
         def custom_roi_objective(report):
             summary = report.summary()
             return summary.get("total_return", 0)
-        
+
         best_params, report = optimize_strategy(
             strategy_class=MovingAverageCrossStrategy,
             data=self.data,
             param_space=self.param_space,
             objective=custom_roi_objective,
         )
-        
+
         self.assertIsNotNone(best_params)
         self.assertIsInstance(report, OptimizationReport)
 
@@ -408,7 +424,7 @@ class TestOptimizationEdgeCases(unittest.TestCase):
         optimizer = GridSearchOptimizer(
             MovingAverageCrossStrategy, self.backtester, self.param_grid, "sharpe_ratio"
         )
-        
+
         # Create minimal data
         data = pd.DataFrame(
             {
@@ -420,9 +436,9 @@ class TestOptimizationEdgeCases(unittest.TestCase):
             },
             index=pd.date_range("2023-01-01", periods=5, freq="D"),
         )
-        
+
         best_params, report = optimizer.optimize(data, verbose=False)
-        
+
         self.assertEqual(len(optimizer.results), 1)
         self.assertEqual(best_params, {"short_window": 5, "long_window": 20})
 
@@ -433,21 +449,27 @@ class TestOptimizationEdgeCases(unittest.TestCase):
             "short_window": [50],  # Larger than long_window
             "long_window": [20],
         }
-        
+
         optimizer = GridSearchOptimizer(
             MovingAverageCrossStrategy,
             self.backtester,
             invalid_param_grid,
-            "sharpe_ratio"
+            "sharpe_ratio",
         )
-        
+
         data = pd.DataFrame(
-            {"Close": [100, 101], "Open": [99, 100], "High": [101, 102], "Low": [99, 100], "Volume": [1000, 1000]},
+            {
+                "Close": [100, 101],
+                "Open": [99, 100],
+                "High": [101, 102],
+                "Low": [99, 100],
+                "Volume": [1000, 1000],
+            },
             index=pd.date_range("2023-01-01", periods=2, freq="D"),
         )
-        
+
         best_params, report = optimizer.optimize(data, verbose=False)
-        
+
         # Should handle the error gracefully
         self.assertEqual(len(optimizer.results), 1)
         # The result should have failed
@@ -460,13 +482,13 @@ class TestOptimizationEdgeCases(unittest.TestCase):
             {"Close": [100]},
             index=pd.date_range("2023-01-01", periods=1, freq="D"),
         )
-        
+
         optimizer = GridSearchOptimizer(
             MovingAverageCrossStrategy, self.backtester, self.param_grid, "sharpe_ratio"
         )
-        
+
         best_params, report = optimizer.optimize(data, verbose=False)
-        
+
         # Should complete but may not generate meaningful results
         self.assertIsNotNone(best_params)
         self.assertIsInstance(report, OptimizationReport)
@@ -480,13 +502,13 @@ class TestOptimizationIntegration(unittest.TestCase):
         # Create realistic price data with trend and volatility
         np.random.seed(42)  # For reproducible tests
         dates = pd.date_range("2023-01-01", periods=200, freq="D")
-        
+
         # Generate realistic price series
         returns = np.random.normal(0.001, 0.02, 200)  # Daily returns
         prices = [100]
         for ret in returns:
             prices.append(prices[-1] * (1 + ret))
-        
+
         self.data = pd.DataFrame(
             {
                 "Open": [p * 0.995 for p in prices[:-1]],
@@ -504,7 +526,7 @@ class TestOptimizationIntegration(unittest.TestCase):
             "short_window": [10, 20, 30],
             "long_window": [50, 100, 150],
         }
-        
+
         best_params, report = optimize_strategy(
             strategy_class=MovingAverageCrossStrategy,
             data=self.data,
@@ -512,17 +534,17 @@ class TestOptimizationIntegration(unittest.TestCase):
             objective="sharpe_ratio",
             initial_capital=10000,
         )
-        
+
         # Verify results
         self.assertIsNotNone(best_params)
         self.assertIn("short_window", best_params)
         self.assertIn("long_window", best_params)
-        
+
         # Verify report
         summary = report.summary()
         self.assertEqual(summary["total_combinations"], 9)  # 3 * 3
         self.assertGreater(summary["successful_combinations"], 0)
-        
+
         # Verify parameter sensitivity
         impact = report.get_parameter_impact()
         self.assertIn("short_window", impact)
@@ -534,9 +556,9 @@ class TestOptimizationIntegration(unittest.TestCase):
             "short_window": [10, 20],
             "long_window": [50, 100],
         }
-        
+
         objectives = ["sharpe_ratio", "total_return", "profit_factor", "win_rate"]
-        
+
         for objective in objectives:
             with self.subTest(objective=objective):
                 best_params, report = optimize_strategy(
@@ -545,7 +567,7 @@ class TestOptimizationIntegration(unittest.TestCase):
                     param_space=param_space,
                     objective=objective,
                 )
-                
+
                 self.assertIsNotNone(best_params)
                 summary = report.summary()
                 self.assertGreater(summary["successful_combinations"], 0)

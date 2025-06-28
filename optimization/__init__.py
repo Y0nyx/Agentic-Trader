@@ -7,6 +7,6 @@ from .grid_search import GridSearchOptimizer, OptimizationReport, optimize_strat
 
 __all__ = [
     "GridSearchOptimizer",
-    "OptimizationReport", 
+    "OptimizationReport",
     "optimize_strategy",
 ]

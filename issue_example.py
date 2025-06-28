@@ -22,45 +22,42 @@ def main():
     """Run the exact example from the issue."""
     print("Running the exact example from issue requirements...")
     print("=" * 60)
-    
+
     df = load_csv_data(filepath="data/GOOGL.csv")
-    
+
     print(f"Loaded data: {len(df)} rows from {df.index.min()} to {df.index.max()}")
-    
+
     # Configuration de l'optimisation
-    param_grid = {
-        "short_window": [10, 20, 30],
-        "long_window": [50, 100, 150]
-    }
-    
+    param_grid = {"short_window": [10, 20, 30], "long_window": [50, 100, 150]}
+
     print(f"Parameter grid: {param_grid}")
-    
+
     optimizer = GridSearchOptimizer(
-        MovingAverageCrossStrategy, 
-        Backtester(initial_capital=10000), 
+        MovingAverageCrossStrategy,
+        Backtester(initial_capital=10000),
         param_grid,
-        objective="total_return"  # ROI objective
+        objective="total_return",  # ROI objective
     )
-    
+
     best_params, optimization_report = optimizer.optimize(df)
-    
+
     print(f"Best parameters found: {best_params}")
     print(f"Optimization report summary:")
     print(optimization_report.print_summary())
-    
+
     # Évaluation des performances avec les meilleurs paramètres
     strategy_best = MovingAverageCrossStrategy(**best_params)
     signals_best = strategy_best.generate_signals(df)
-    
+
     backtester = Backtester(initial_capital=10000)
     performance_results = backtester.run_backtest(df, signals_best)
-    
+
     metrics = evaluate_performance(performance_results)
-    
+
     print("Meilleurs paramètres trouvés :", best_params)
     print("Rapport d'optimisation:", optimization_report.summary())
     print("Évaluation des performances finales:", metrics)
-    
+
     print("\n" + "=" * 60)
     print("Example completed successfully!")
     print("All functionality from the issue has been implemented.")
