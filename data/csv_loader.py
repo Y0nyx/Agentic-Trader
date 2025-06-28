@@ -56,26 +56,30 @@ def load_csv_data(
             return pd.DataFrame()
 
         logger.info(f"Loading CSV data from {filepath}")
-        
+
         # Load CSV data
         data = pd.read_csv(filepath)
-        
+
         if data.empty:
             logger.warning(f"CSV file is empty: {filepath}")
             return pd.DataFrame()
 
         # Validate expected columns if requested
         if validate_format:
-            expected_columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
-            missing_columns = [col for col in expected_columns if col not in data.columns]
-            
+            expected_columns = ["Date", "Open", "High", "Low", "Close", "Volume"]
+            missing_columns = [
+                col for col in expected_columns if col not in data.columns
+            ]
+
             if missing_columns:
-                logger.warning(f"Missing expected columns in {filepath}: {missing_columns}")
+                logger.warning(
+                    f"Missing expected columns in {filepath}: {missing_columns}"
+                )
                 # Continue processing - standardization might handle some variations
 
         # Standardize the DataFrame format
         data = _standardize_dataframe(data)
-        
+
         # Apply data cleaning if requested
         if clean_data:
             symbol = os.path.splitext(os.path.basename(filepath))[0]
@@ -107,16 +111,18 @@ def get_available_csv_files(data_dir: Optional[str] = None) -> list:
     if data_dir is None:
         # Get the directory where this module is located
         data_dir = os.path.dirname(os.path.abspath(__file__))
-    
+
     try:
-        csv_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
+        csv_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
         return sorted(csv_files)
     except OSError as e:
         logger.error(f"Error accessing data directory {data_dir}: {str(e)}")
         return []
 
 
-def load_symbol_from_csv(symbol: str, data_dir: Optional[str] = None, **kwargs) -> pd.DataFrame:
+def load_symbol_from_csv(
+    symbol: str, data_dir: Optional[str] = None, **kwargs
+) -> pd.DataFrame:
     """
     Load data for a specific symbol from CSV files.
 
@@ -138,23 +144,23 @@ def load_symbol_from_csv(symbol: str, data_dir: Optional[str] = None, **kwargs) 
     """
     if data_dir is None:
         data_dir = os.path.dirname(os.path.abspath(__file__))
-    
+
     # Try exact filename match first
     csv_filename = f"{symbol}.csv"
     filepath = os.path.join(data_dir, csv_filename)
-    
+
     if os.path.exists(filepath):
         return load_csv_data(filepath, **kwargs)
-    
+
     # If not found, look for similar filenames (case insensitive)
     available_files = get_available_csv_files(data_dir)
     symbol_lower = symbol.lower()
-    
+
     for filename in available_files:
         if filename.lower().startswith(symbol_lower.lower()):
             filepath = os.path.join(data_dir, filename)
             logger.info(f"Loading {symbol} from {filename}")
             return load_csv_data(filepath, **kwargs)
-    
+
     logger.warning(f"No CSV file found for symbol {symbol} in {data_dir}")
     return pd.DataFrame()
