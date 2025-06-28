@@ -40,6 +40,8 @@ from strategies.regime_adaptive_strategy import RegimeAdaptiveStrategy
 from strategies.trend_following_strategy import TrendFollowingStrategy
 from strategies.buy_hold_plus_strategy import BuyHoldPlusStrategy
 from strategies.adaptive_ma_strategy import AdaptiveMovingAverageStrategy
+from strategies.advanced_ma_strategy import AdvancedMAStrategy
+from strategies.triple_ma_strategy import TripleMovingAverageStrategy
 
 # Simulation imports
 from simulation.backtester import Backtester
@@ -321,6 +323,8 @@ class RegimeAdaptiveBenchmark:
             'Trend Following': TrendFollowingStrategy(),
             'Buy Hold Plus': BuyHoldPlusStrategy(),
             'Adaptive MA': AdaptiveMovingAverageStrategy(),
+            'Advanced MA': AdvancedMAStrategy(),
+            'Triple MA': TripleMovingAverageStrategy(),
             'Buy & Hold': None  # Special case
         }
         
